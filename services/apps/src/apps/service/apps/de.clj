@@ -121,6 +121,10 @@
     (when (util/uuid? app-id)
       (edit/get-app-ui user app-id)))
 
+  (getAppInputIds [_ app-id]
+    (when (util/uuid? app-id)
+      (listings/get-app-input-ids (uuidify app-id))))
+
   (addPipeline [_ pipeline]
     (pipeline-edit/add-pipeline user pipeline))
 
@@ -254,4 +258,11 @@
       (sharing/unshare-app-with-user
        user sharee (uuidify app-id)
        (partial app-permissions/app-unsharing-success app-names app-id)
-       (partial app-permissions/app-unsharing-failure app-names app-id)))))
+       (partial app-permissions/app-unsharing-failure app-names app-id))))
+
+  (hasAppPermission [_ username app-id required-level]
+    (when (util/uuid? app-id)
+      (perms/has-app-permission username (uuidify app-id) required-level)))
+
+  (supportsJobSharing [_ _]
+    true))

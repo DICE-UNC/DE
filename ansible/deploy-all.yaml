@@ -3,6 +3,7 @@
 # Services Support
 ############################################
 - include: playbooks/de-services-common.yml
+- include: playbooks/de-docker-network.yml
 
 ############################################
 # Condor
@@ -12,13 +13,21 @@
 ############################################
 # Databases
 ############################################
-- include: db-migrations.yaml
+# Use the postgres and db-creator roles to
+# install Postgres and create users / dbs.
+# Then Sharkbait can populate tables from
+# Cyverse's tarballs (see wiki).
+#- include: db-migrations.yaml
 
 ############################################
 # Services
 ############################################
-- include: playbooks/de-jex.yaml
+- include: playbooks/de-rabbitmq-cfg.yml
+- include: playbooks/de-condor-launcher.yml
+- include: playbooks/de-image-janitor.yaml
+- include: playbooks/de-road-runner.yml
 - include: playbooks/de-pull-images.yaml
 - include: playbooks/de-stop-containers.yml
 - include: playbooks/de-rm-containers.yml
 - include: playbooks/de-start-containers.yml
+- include: playbooks/de-rm-jex.yaml

@@ -1,0 +1,12 @@
+# basic defaults
+irods_icat_pkg: ftp://ftp.renci.org/pub/irods/releases/4.1.6/ubuntu14/irods-icat-4.1.6-ubuntu14-x86_64.deb
+irods_icat_rpm: ftp://ftp.renci.org/pub/irods/releases/4.1.8/centos7/irods-icat-4.1.8-centos7-x86_64.rpm
+irods_control_plane_port: 1248
+irods_control_plane_key: temp_32_byte_key_for_agent__conn
+irods_negotiation_key: temp_32_byte_key_for_agent__conn
+irods_postgres_pkg: ftp://ftp.renci.org/pub/irods/releases/4.1.6/ubuntu14/irods-database-plugin-postgres-1.6-ubuntu14-x86_64.deb
+irods_postgres_rpm: ftp://ftp.renci.org/pub/irods/releases/4.1.8/centos7/irods-database-plugin-postgres93-1.8-centos7-x86_64.rpm
+#postgresql_listen_addresses: "*"
+irods_schema_uri: https://schemas.irods.org/configuration
+irods_vault_path: /var/lib/irods/iRODS/Vault1
+irods_zone_key: temp_32_byte_key_for_agent__conn

@@ -1,0 +1,47 @@
+
+- name: Add postgres repository for Debian
+  apt_repository: repo='deb http://apt.postgresql.org/pub/repos/apt/ trusty-pgdg main' state=present
+  when: ansible_os_family == "Debian" and
+        ansible_distribution_major_version == "14"
+
+- name: Add postgres repository key for Debian
+  apt_key: url=http://apt.postgresql.org/pub/repos/apt/ACCC4CF8.asc state=present
+  when: ansible_os_family == "Debian" and
+        ansible_distribution_major_version == "14"
+
+- name: ensure apt cache is up to date for Debian
+  apt: update_cache=yes
+  when: ansible_os_family == "Debian"
+
+- name: ensure packages are installed for Debian
+  apt: name={{item}} state=present
+  with_items:
+        - postgresql
+        - libpq-dev
+        - python-psycopg2
+  when: ansible_os_family == "Debian"
+
+- name: install CentOS 7 Postgres repository
+  yum: name={{de_db_pgsql_repo}} state=present
+  when: ansible_distribution == "CentOS" and
+        ansible_distribution_major_version == "7"
+
+- name: ensure packages are installed for CentOS7
+  yum: name={{item}} state=latest
+  with_items:
+        - "{{de_db_pgsql_rpm}}"
+        - python-psycopg2
+  when: ansible_distribution == "CentOS" and
+        ansible_distribution_major_version == "7"
+
+- name: init postgres if necessary
+  shell: "/usr/pgsql-{{de_db_pgsql_major}}/bin/postgresql{{de_db_pgsql_cli}}-setup initdb"
+  when: ansible_distribution == "CentOS" and
+        ansible_distribution_major_version == "7"
+  ignore_errors: true
+
+- name: enable postgres for CentOS7
+  service: name=postgresql-{{de_db_pgsql_major}} enabled=yes
+  when: ansible_distribution == "CentOS" and
+        ansible_distribution_major_version == "7"
+ 

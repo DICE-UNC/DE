@@ -1,0 +1,67 @@
+---
+
+- debug: msg="Docker prereqs to use private repo for custom app images."
+
+- name: ensure docker-python installed for ansible module
+  yum: name=docker-python state=latest
+  tags: docker
+
+- name: login to private Docker remote registry
+  docker_login:
+    registry: "{{ docker.registry.base }}"
+    username: "{{ docker.registry.user }}"
+    password: "{{ docker.registry.pass }}"
+  tags: docker
+
+- debug: msg="and now on to Condor installation."
+
+- name: Condor likes Java
+  yum: name=java-1.8.0-openjdk-headless state=latest
+  when: ansible_distribution == "CentOS" and
+        ansible_distribution_major_version == "7"
+  tags:
+    - deploy_condor
+
+- name: install condor RHEL/CentOS7 repo
+  copy: src="htcondor-stable-rhel7.repo" dest=/etc/yum.repos.d owner=root group=root mode=0644
+  when: ansible_distribution == "CentOS" and
+        ansible_distribution_major_version == "7"
+  tags:
+    - deploy_condor
+
+- name: install HTCondor
+  sudo: yes
+  yum: name=condor-all state=latest
+  when: ansible_distribution == "CentOS" and
+        ansible_distribution_major_version == "7"
+  tags:
+    - deploy_condor
+
+- name: set the /etc/condor/condor_config.local file
+  sudo: yes
+  template: src=condor_config.local.j2 dest=/etc/condor/condor_config.local owner=root group=root mode=0644
+
+- name: create cred_dir
+  sudo: yes
+  file: path="{{condor.cred_dir}}" state=directory owner=condor group=condor mode=0755
+
+- name: ensure condor user can write to condor.cred_dir
+  sudo: yes
+  file: path="{{condor.cred_dir}}" state=directory owner=condor group=condor recurse=yes
+
+- name: ensure condor user can write its logs
+  sudo: yes
+  file: path=/var/log/condor state=directory owner=condor group=condor recurse=yes
+
+- name: place condor systemd.file so condor doesn't run as root
+  sudo: yes
+  copy: src=condor.service dest=/usr/lib/systemd/system/ owner=root group=root mode=0644
+
+- name: reload systemd
+  sudo: yes
+  shell: "systemctl daemon-reload"
+
+- name: restart condor
+  sudo: yes
+  service: name=condor state=restarted enabled=yes
+

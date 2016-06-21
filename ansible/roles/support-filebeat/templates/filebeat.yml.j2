@@ -1,0 +1,23 @@
+## {{ ansible_managed }}
+---
+
+filebeat:
+  prospectors:
+    -
+      paths:
+        - /var/log/*.log
+        - /var/log/messages
+        - /var/log/secure
+        - /var/log/de/*.log
+      input_type: log
+  registry_file: /var/lib/filebeat/registry
+
+output:
+  logstash:
+    hosts: ["{{elk_host}}:{{elk.logstash.port}}"]
+
+shipper:
+
+logging:
+  files:
+

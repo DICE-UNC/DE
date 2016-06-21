@@ -1,0 +1,6 @@
+---
+# defaults file for support-filebeat
+filebeat_install: true
+filebeat_apt_repo:
+    gpgkey: "http://packages.elastic.co/GPG-KEY-elasticsearch"
+    repo: "deb https://packages.elastic.co/beats/apt stable main"

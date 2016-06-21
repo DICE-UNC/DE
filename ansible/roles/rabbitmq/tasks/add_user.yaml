@@ -1,0 +1,17 @@
+---
+- name: define local _user var
+  set_fact: _user={{ user }}
+
+# For RabbitMQ 3.3.1, this task will always update the user because of the \ character in the 
+# privileges.  See https://github.com/rabbitmq/rabbitmq-server/issues/596. 
+- name: add user {{ user.name }}
+  with_items: "{{ _user.vhosts | default([{}]) }}"
+  rabbitmq_user:
+    user: "{{ _user.name }}"
+    password: "{{ _user.password | default(omit) }}"
+    vhost: "{{ item.name | default('/') }}"
+    configure_priv: "{{ item.configure_priv | default('^$') }}"
+    write_priv: "{{ item.write_priv | default('^$') }}"
+    read_priv: "{{ item.read_priv | default('^$') }}"
+    tags: "{{ _user.tags  | default('') }}"
+

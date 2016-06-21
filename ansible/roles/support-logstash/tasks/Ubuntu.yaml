@@ -1,0 +1,21 @@
+---
+- name: Add Logstash repo key
+  when:
+  apt_key: "url={{logstash_apt_repo.gpgkey}} state=present"
+  tags: 
+     - install
+
+- name: Add Logstash repo
+  apt_repository: 
+      repo: "{{logstash_apt_repo.repo}}"
+      state: present
+  tags: 
+     - install
+
+- name: Install logstash
+  apt: 
+    name: logstash
+    state: present
+  tags: 
+     - install
+

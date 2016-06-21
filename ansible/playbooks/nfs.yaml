@@ -1,0 +1,7 @@
+# THIS ANSIBLE PLAYBOOK LAB INSTALLATION OF NFS MOUNTS
+# current - Mike Conway
+- hosts: nfs
+  sudo: yes
+  sudo_user: root
+  roles:
+   - role: nfs

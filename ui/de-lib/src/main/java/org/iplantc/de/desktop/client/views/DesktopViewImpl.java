@@ -105,6 +105,10 @@ public class DesktopViewImpl implements DesktopView, UnregisterEvent.UnregisterH
         }
     }
 
+    public void hideNotificationMenu() {
+        ((DesktopIconButton)notificationsBtn).hideMenu();
+    }
+
     @Override
     public void onRegister(RegisterEvent<Widget> event) {
         final Widget eventItem = event.getItem();
@@ -362,7 +366,7 @@ public class DesktopViewImpl implements DesktopView, UnregisterEvent.UnregisterH
 
     @UiHandler("logoutBtn")
     void onLogoutClick(ClickEvent event){
-        presenter.doLogout();
+        presenter.doLogout(false);
     }
 
 }

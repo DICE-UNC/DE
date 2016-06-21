@@ -176,6 +176,15 @@
    (POST "/analyses" [:as {:keys [body]}]
          (service/success-response (apps/submit-job body)))
 
+   (POST "/analyses/permission-lister" [:as {:keys [body]}]
+         (service/success-response (apps/list-job-permissions body)))
+
+   (POST "/analyses/sharing" [:as {:keys [body]}]
+         (service/success-response (apps/share-jobs body)))
+
+   (POST "/analyses/unsharing" [:as {:keys [body]}]
+         (service/success-response (apps/unshare-jobs body)))
+
    (PATCH "/analyses/:analysis-id" [analysis-id :as {body :body}]
           (service/success-response (apps/update-job analysis-id body)))
 

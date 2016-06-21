@@ -9,6 +9,7 @@ import static org.iplantc.de.client.models.analysis.AnalysisExecutionStatus.SUBM
 
 import org.iplantc.de.analysis.client.AnalysesView;
 import org.iplantc.de.analysis.client.AnalysisToolBarView;
+import org.iplantc.de.analysis.client.models.AnalysisFilter;
 import org.iplantc.de.analysis.client.views.dialogs.AnalysisCommentsDialog;
 import org.iplantc.de.analysis.client.views.dialogs.AnalysisParametersDialog;
 import org.iplantc.de.analysis.client.views.widget.AnalysisSearchField;
@@ -18,13 +19,16 @@ import org.iplantc.de.client.models.analysis.Analysis;
 import org.iplantc.de.commons.client.ErrorHandler;
 import org.iplantc.de.commons.client.validators.DiskResourceNameValidator;
 import org.iplantc.de.commons.client.views.dialogs.IPlantPromptDialog;
+import org.iplantc.de.shared.AsyncProviderWrapper;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.dom.client.KeyUpEvent;
 import com.google.gwt.event.logical.shared.SelectionEvent;
-import com.google.gwt.inject.client.AsyncProvider;
+import com.google.gwt.event.logical.shared.SelectionHandler;
+import com.google.gwt.event.logical.shared.ValueChangeEvent;
+import com.google.gwt.event.logical.shared.ValueChangeHandler;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiFactory;
 import com.google.gwt.uibinder.client.UiField;
@@ -35,6 +39,7 @@ import com.google.gwt.user.client.ui.Widget;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 
+import com.sencha.gxt.data.shared.StringLabelProvider;
 import com.sencha.gxt.data.shared.loader.FilterPagingLoadConfig;
 import com.sencha.gxt.data.shared.loader.PagingLoadResult;
 import com.sencha.gxt.data.shared.loader.PagingLoader;
@@ -44,11 +49,13 @@ import com.sencha.gxt.widget.core.client.box.ConfirmMessageBox;
 import com.sencha.gxt.widget.core.client.button.TextButton;
 import com.sencha.gxt.widget.core.client.event.DialogHideEvent;
 import com.sencha.gxt.widget.core.client.event.SelectEvent;
+import com.sencha.gxt.widget.core.client.form.SimpleComboBox;
 import com.sencha.gxt.widget.core.client.menu.Item;
 import com.sencha.gxt.widget.core.client.menu.MenuItem;
 import com.sencha.gxt.widget.core.client.selection.SelectionChangedEvent;
 import com.sencha.gxt.widget.core.client.toolbar.ToolBar;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -72,12 +79,25 @@ public class AnalysesToolBarImpl extends Composite implements AnalysisToolBarVie
     @UiField MenuItem renameMI;
     @UiField TextButton editTb;
     @UiField TextButton refreshTb;
-    @UiField TextButton showAllTb;
     @UiField AnalysisSearchField searchField;
     @UiField(provided = true) final AnalysesView.Appearance appearance;
-    // @UiField
-    // MenuItem shareMI;
-    @Inject AsyncProvider<AnalysisParametersDialog> analysisParametersDialogAsyncProvider;
+
+    @UiField
+    TextButton share_menu;
+    @UiField
+    MenuItem shareCollabMI;
+
+    //hidden for now...
+    //@UiField
+    //MenuItem shareSupportMI;
+
+    @UiField(provided = true)
+    SimpleComboBox<AnalysisFilter> filterCombo;
+
+    @Inject AsyncProviderWrapper<AnalysisParametersDialog> analysisParametersDialogAsyncProvider;
+
+    @Inject
+    UserInfo userInfo;
 
 
     List<Analysis> currentSelection;
@@ -91,8 +111,42 @@ public class AnalysesToolBarImpl extends Composite implements AnalysisToolBarVie
         this.appearance = appearance;
         this.presenter = presenter;
         this.loader = loader;
+
+        filterCombo = new SimpleComboBox<AnalysisFilter>(new StringLabelProvider<AnalysisFilter>());
+        filterCombo.add(Arrays.asList(AnalysisFilter.ALL,
+                                      AnalysisFilter.MY_ANALYSES,
+                                      AnalysisFilter.SHARED_WITH_ME));
         AnalysesToolbarUiBinder uiBinder = GWT.create(AnalysesToolbarUiBinder.class);
         initWidget(uiBinder.createAndBindUi(this));
+        filterCombo.setEditable(false);
+        filterCombo.setValue(AnalysisFilter.ALL);
+        filterCombo.addSelectionHandler(new SelectionHandler<AnalysisFilter>() {
+            @Override
+            public void onSelection(SelectionEvent<AnalysisFilter> event) {
+                onFilterChange(event.getSelectedItem());
+            }
+        });
+        filterCombo.addValueChangeHandler(new ValueChangeHandler<AnalysisFilter>() {
+            @Override
+            public void onValueChange(ValueChangeEvent<AnalysisFilter> event) {
+               onFilterChange(event.getValue());
+            }
+        });
+    }
+
+    private void onFilterChange(AnalysisFilter af) {
+        switch (af) {
+            case ALL:
+                applyFilter(AnalysisFilter.ALL);
+                break;
+            case SHARED_WITH_ME:
+                applyFilter(AnalysisFilter.SHARED_WITH_ME);
+                break;
+
+            case MY_ANALYSES:
+                applyFilter(AnalysisFilter.MY_ANALYSES);
+                break;
+        }
     }
 
     @UiFactory
@@ -103,25 +157,30 @@ public class AnalysesToolBarImpl extends Composite implements AnalysisToolBarVie
     @Override
     public void filterByAnalysisId(String analysisId, String name) {
         searchField.filterByAnalysisId(analysisId, name);
-        showAllTb.enable();
+        //reset filter. Users need to set Filter to ALL to go back...
+        filterCombo.setValue(null);
+        presenter.setCurrentFilter(null);
     }
 
     @Override
     public void filterByParentAnalysisId(String analysisId) {
         searchField.filterByParentId(analysisId);
-        showAllTb.enable();
+        //reset filter. Users need to set Filter to ALL to go back...
+        filterCombo.setValue(null);
+        presenter.setCurrentFilter(null);
     }
 
     @Override
     public void onSelectionChanged(SelectionChangedEvent<Analysis> event) {
         
-        GWT.log("user--->" + UserInfo.getInstance().getFullUsername());
+        GWT.log("user--->" + userInfo.getFullUsername());
         currentSelection = event.getSelection();
 
         int size = currentSelection.size();
         final boolean canCancelSelection = canCancelSelection(currentSelection);
         final boolean canDeleteSelection = canDeleteSelection(currentSelection);
-        boolean isOwner = canShare(currentSelection);
+        boolean isOwner = isOwner(currentSelection);
+        boolean can_share = isSharable(currentSelection);
 
         boolean goToFolderEnabled, viewParamsEnabled, relaunchEnabled, cancelEnabled, deleteEnabled;
         boolean renameEnabled, updateCommentsEnabled, shareEnabled;
@@ -147,7 +206,7 @@ public class AnalysesToolBarImpl extends Composite implements AnalysisToolBarVie
 
                 renameEnabled = isOwner;
                 updateCommentsEnabled = isOwner;
-                shareEnabled = isOwner;
+                shareEnabled = isOwner && can_share;
                 break;
 
             default:
@@ -157,7 +216,7 @@ public class AnalysesToolBarImpl extends Composite implements AnalysisToolBarVie
                 relaunchEnabled = false;
                 cancelEnabled = canCancelSelection && isOwner;
                 deleteEnabled = canDeleteSelection && isOwner;
-                shareEnabled = isOwner;
+                shareEnabled = isOwner && can_share;
                 renameEnabled = false;
                 updateCommentsEnabled = false;
         }
@@ -168,25 +227,32 @@ public class AnalysesToolBarImpl extends Composite implements AnalysisToolBarVie
         relaunchMI.setEnabled(relaunchEnabled);
         cancelMI.setEnabled(cancelEnabled);
         deleteMI.setEnabled(deleteEnabled);
-        /**
-         * always disabled for now.
-         * 
-         */
-        // shareMI.setEnabled(shareEnabled);
-        /**
-         * uncomment when feature is needed.
-         */
+        share_menu.setEnabled(shareEnabled);
+        shareCollabMI.setEnabled(shareEnabled);
+       // shareSupportMI.setEnabled(shareEnabled);
         renameMI.setEnabled(renameEnabled);
         updateCommentsMI.setEnabled(updateCommentsEnabled);
     }
 
-    private boolean canShare(List<Analysis> selection) {
+    private boolean isOwner(List<Analysis> selection) {
         for (Analysis a : selection) {
-            if (!(a.getUserName().equals(UserInfo.getInstance().getFullUsername()))) {
+            if (!(a.getUserName().equals(userInfo.getFullUsername()))) {
                 return false;
             }
         }
 
+        return true;
+    }
+
+     boolean isSharable(List<Analysis> selection) {
+        for (Analysis a : selection) {
+            if ((!(a.getStatus().equals(COMPLETED.toString())
+                  || a.getStatus().equals(FAILED.toString()))
+                  || !( a.isSharable()))) {
+                return false;
+            }
+
+        }
         return true;
     }
 
@@ -217,6 +283,12 @@ public class AnalysesToolBarImpl extends Composite implements AnalysisToolBarVie
 
         refreshTb.ensureDebugId(baseID + AnalysisModule.Ids.BUTTON_REFRESH);
         searchField.ensureDebugId(baseID + AnalysisModule.Ids.FIELD_SEARCH);
+
+        //share menu
+        share_menu.ensureDebugId(baseID + AnalysisModule.Ids.SHARE_MENU );
+        shareCollabMI.ensureDebugId(baseID + AnalysisModule.Ids.SHARE_COLLAB);
+        shareCollabMI.ensureDebugId(baseID + AnalysisModule.Ids.SHARE_SUPPORT);
+
     }
 
     /**
@@ -265,12 +337,13 @@ public class AnalysesToolBarImpl extends Composite implements AnalysisToolBarVie
     @UiHandler("searchField")
     void searchFieldKeyUp(KeyUpEvent event){
         if (Strings.isNullOrEmpty(searchField.getCurrentValue())) {
-            // disable show all since an empty search field would fire load all.
-            showAllTb.disable();
+            filterCombo.setValue(AnalysisFilter.ALL);
         } else {
-            showAllTb.enable();
+            filterCombo.setValue(null);
+            presenter.setCurrentFilter(null);
         }
     }
+
 
     @UiHandler("cancelMI")
     void onCancelSelected(SelectionEvent<Item> event) {
@@ -389,16 +462,49 @@ public class AnalysesToolBarImpl extends Composite implements AnalysisToolBarVie
         presenter.onRefreshSelected();
     }
 
-    @UiHandler("showAllTb")
-    void onShowAllSelected(SelectEvent event) {
-        searchField.clear();
-        showAllTb.setEnabled(false);
-        presenter.onShowAllSelected();
+    void applyFilter(AnalysisFilter filter) {
+        presenter.setCurrentFilter(filter);
     }
-    //</editor-fold>
 
-    /**
-     * @UiHandler("shareMI") void onShareSelected(SelectionEvent<Item> event) {
-     *                       presenter.onShareSelected(currentSelection); }
-     **/
+    @Override
+    public void setFilterInView(AnalysisFilter filter) {
+        filterCombo.setValue(filter);
+    }
+
+    @UiHandler("shareCollabMI")
+    void onShareSelected(SelectionEvent<Item> event) {
+       presenter.onShareSelected(currentSelection);
+    }
+
+  /**  @UiHandler("shareSupportMI")
+    void onShareSupportSelected(SelectionEvent<Item> event) {
+        ConfirmMessageBox messageBox = new ConfirmMessageBox(appearance.shareSupport(),
+                                                             appearance.shareSupportConfirm());
+        messageBox.setPredefinedButtons(Dialog.PredefinedButton.YES,
+                                        Dialog.PredefinedButton.NO,
+                                        Dialog.PredefinedButton.CANCEL);
+        messageBox.getButton(Dialog.PredefinedButton.YES).setText(appearance.shareWithInput());
+        messageBox.getButton(Dialog.PredefinedButton.NO).setText(appearance.shareOutputOnly());
+
+        messageBox.addDialogHideHandler(new DialogHideEvent.DialogHideHandler() {
+            @Override
+            public void onDialogHide(DialogHideEvent event) {
+                switch (event.getHideButton()) {
+                    case YES:
+                        presenter.onShareSupportSelected(currentSelection, true);
+                        break;
+                    case NO:
+                        presenter.onShareSupportSelected(currentSelection, false);
+                        break;
+
+                    case CANCEL:
+                        break;
+                }
+            }
+        });
+
+        messageBox.show();
+
+    } **/
+
 }

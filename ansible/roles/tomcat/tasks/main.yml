@@ -1,0 +1,48 @@
+---
+
+- name: add group "tomcat"
+  group: name=tomcat
+
+- name: add user "tomcat"
+  user: name=tomcat group=tomcat home=/usr/share/tomcat createhome=no shell=/bin/bash
+  sudo: True
+
+- name: Download Tomcat
+  get_url: url=http://archive.apache.org/dist/tomcat/tomcat-7/v7.0.61/bin/apache-tomcat-7.0.61.tar.gz dest=/opt/apache-tomcat-7.0.61.tar.gz
+  environment:
+       http_proxy: "{{ proxy_env.https_proxy }}"
+
+- name: Extract archive
+  command: chdir=/usr/share /bin/tar xvf /opt/apache-tomcat-7.0.61.tar.gz -C /opt/ creates=/opt/apache-tomcat-7.0.61
+
+- name: Symlink install directory
+  sudo: yes
+  file: src=/opt/apache-tomcat-7.0.61 path=/usr/share/tomcat state=link
+
+- name: ensure epel for tomcat-native
+  yum: name=epel-release state=latest
+  when: ansible_distribution == "CentOS" and
+        ansible_distribution_major_version == "7"
+
+- name: install tomcat-native package for centos7
+  yum: name=tomcat-native state=latest
+  when: ansible_distribution == "CentOS" and
+        ansible_distribution_major_version == "7"
+
+- name: Change ownership of Tomcat installation
+  sudo: yes
+  file: path=/usr/share/tomcat/ owner=tomcat group=tomcat state=directory recurse=yes
+
+- name: Configure Tomcat server
+  template: src=server.xml.j2 dest=/usr/share/tomcat/conf/server.xml
+  notify: restart tomcat
+
+- name: Configure Tomcat users
+  template: src=tomcat-users.xml.j2 dest=/usr/share/tomcat/conf/tomcat-users.xml
+  notify: restart tomcat
+
+- name: Install Tomcat init script
+  copy: src=tomcat-initscript.sh dest=/etc/init.d/tomcat mode=0755
+
+- name: Start Tomcat
+  service: name=tomcat state=started enabled=yes

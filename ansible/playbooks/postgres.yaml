@@ -1,0 +1,6 @@
+- name: install postgres
+  hosts: db
+  sudo: yes
+  sudo_user: root
+  roles:
+    - role: postgres

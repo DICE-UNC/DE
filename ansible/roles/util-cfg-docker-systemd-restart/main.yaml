@@ -1,0 +1,7 @@
+---
+
+- debug: msg="Restarting {{service_name}}"
+
+- name: restart systemd-controlled docker container
+  service: name="{{service_name}}" state=restarted
+

@@ -1,0 +1,38 @@
+- name: ldap Copy over the create users and group ldif 
+  template: src=root/tmp/create_users_and_groups.ldif.j2 dest=/tmp/create_users_and_groups.ldif owner=root group=root
+  when: ldap.include_create_user_and_groups
+  tags: 
+    - ldap 
+    - auth
+
+#- name: Display all variables/facts known for a host
+#  debug: var={{ldap.dc}}
+
+- name: ldap Install users and groups 
+  shell: ldapadd -w {{ldap.password}} -x -D {{ ldap.manager_dn }} -f create_users_and_groups.ldif && touch {{ldap.create_user_and_groups_done}} chdir=/tmp creates={{ldap.create_user_and_groups_done}}
+  when: ldap.include_create_user_and_groups
+  tags: 
+    - ldap 
+    - auth 
+
+- name: ldap Copy over the indexes ldif
+  template: src=root/tmp/create_indexes.ldif.j2 dest=/tmp/create_indexes.ldif owner=root group=root
+  when: ldap.include_create_indexes
+  tags: 
+    - ldap
+    - auth
+
+- name: ldap Copy over the test de ldif if flagged for test setup
+  template: src=root/tmp/test-de-user.ldif.j2 dest=/tmp/testde.ldif owner=root group=root
+  when: ldap.include_testde
+  tags:
+    - ldap
+    - auth
+
+
+- name: ldap Install testde users
+  shell: ldapadd -w {{ldap.password}} -x -D {{ ldap.manager_dn }} -f testde.ldif && touch {{ldap.create_testde_done}} chdir=/tmp creates={{ldap.create_testde_done}}
+  when: ldap.include_testde
+  tags:
+    - ldap
+    - auth

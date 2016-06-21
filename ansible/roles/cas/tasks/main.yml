@@ -1,0 +1,117 @@
+
+#
+# Properties file configuration
+#
+- name: ensure data directory exists
+  file: path=/etc/cas state=directory owner={{ cas.tomcat.user }} group={{ cas.tomcat.group }}
+  tags:
+    - cas
+    - properties
+
+- name: copy all template configs
+  template: src=config/cas.properties dest=/etc/cas/cas.properties
+  tags:
+    - cas
+    - properties
+
+
+- name: Install maven
+  yum: name=maven state=installed
+  sudo: yes
+
+- name: ensure .m2 directory exists
+  file: name=/home/{{ansible_ssh_user}}/.m2 state=directory owner={{ansible_ssh_user}}
+  tags:
+    - cas
+    - properties
+
+- name: add proxy for maven
+  template: src=maven/settings.xml dest=/home/{{ansible_ssh_user}}/.m2/settings.xml
+  tags:
+    - cas
+    - properties
+
+- name: copy log4j.xml
+  copy: src=log4j.xml dest=/etc/cas/ owner={{ cas.tomcat.user }} group={{ cas.tomcat.group }}
+  tags:
+    - cas
+    - properties
+
+- name: set data ownership [all data is owned by tomcat]
+  file: path=/etc/cas owner={{ cas.tomcat.user }} group={{ cas.tomcat.group }} recurse=true
+  tags:
+    - cas
+    - properties
+
+- name: ensure ssl certificate directory exists (if required)
+  file: path={{ cas.ssl_certificate_server_dir }} state=directory owner={{ cas.tomcat.user }} group={{ cas.tomcat.group }}
+  when: cas.do_ssl_config
+  tags:
+    - cas
+    - properties
+    - apache_vhost
+
+- name: copy SSL public key
+  copy: src={{ cas.ssl_cert_file }} dest={{ cas.ssl_certificate_server_dir }}/{{ cas.ssl_cert_file }}
+  when: cas.do_ssl_config
+  tags:
+    - cas
+    - properties
+    - apache_vhost
+
+- name: copy SSL private key
+  copy: src={{ cas.ssl_key_file }} dest={{ cas.ssl_certificate_server_dir }}/{{ cas.ssl_key_file }}
+  when: cas.do_ssl_config
+  tags:
+        - cas
+        - properties
+        - apache_vhost
+
+- name: set data ownership [all data is owned by tomcat]
+  file: path={{ cas.ssl_certificate_server_dir }} owner={{ cas.tomcat.user }} group={{ cas.tomcat.user }} recurse=true
+  when: cas.do_ssl_config
+  tags:
+    - cas
+    - properties
+
+#
+# WAR file deployment and virtual host configuration
+#
+
+- name: ensure git installed
+  yum: name=git state=latest
+  tags:
+    - cas
+    - properties
+
+- name: ensure casbuild directory exists
+  file: name=/home/{{ansible_ssh_user}}/casbuild state=directory owner={{ansible_ssh_user}}
+  tags:
+    - cas
+    - properties
+
+- name: make sure ansible user owns all of the cas build dir
+  file: path=/home/{{ ansible_ssh_user }}/casbuild/ owner={{ansible_ssh_user}} group={{ansible_ssh_user}} recurse=true
+  tags:
+    - cas
+    - properties
+
+- name: cas | download overlay
+  git: repo={{ cas.git_url }}
+       dest=/home/{{ ansible_ssh_user }}/casbuild/{{ cas.git_project_name }}
+  become_user: "{{ ansible_ssh_user }}"
+  environment:
+            https_proxy: "{{ proxy_env.https_proxy }}"
+
+
+- name: cas | build cas overlay
+  shell:
+       cd /home/{{ansible_ssh_user}}/casbuild/{{ cas.git_project_name }}; mvn clean; mvn package;
+  become_user: "{{ ansible_ssh_user }}"
+  environment:
+    https_proxy: "{{ proxy_env.https_proxy }}"
+    https_proxy: "{{ proxy_env.http_proxy }}"
+
+- name: copy war to tomcat
+  shell: cp  /home/{{ansible_ssh_user}}/casbuild/{{ cas.git_project_name }}/target/cas.war /usr/share/tomcat/webapps/cas.war
+  sudo: yes

@@ -1,6 +1,5 @@
 # Set de_config_dir to the local directory.
 # Example: ansible-playbook -i inventories/production.cfg  --extra-vars "de_config_dir=$(pwd)/foo playbook=playbooks/local-services-cfg.yml owner=$(whoami) group=staff de_env=production" --tags="service_config,logging_config" single-role.yaml
-
 ---
 - hosts: localhost
   sudo: false
@@ -9,22 +8,22 @@
     - ../group_vars/{{de_env}}
   pre_tasks:
     - name: create the output directory
-      file: path={{de_config_dir}} state=directory
+      file: path={{local_cfg_dest}}/iplant/de state=directory
       tags:
         - service_config
 
     - name: create the logging directory
-      file: path={{de_config_dir}}/logging state=directory
+      file: path={{local_cfg_dest}}/logging state=directory
       tags:
         - logging_config
 
     - name: create the logstash-forwarder directory
-      file: path={{de_config_dir}}/logstash-forwarder state=directory
+      file: path={{local_cfg_dest}}/logstash-forwarder state=directory
       tags:
         - logging_config
 
     - name: create the nginx config
-      file: path={{de_config_dir}}/nginx state=directory
+      file: path={{local_cfg_dest}}/nginx state=directory
       tags:
         - service_config
 
@@ -93,26 +92,50 @@
       service_name_short: "{{user_sessions.service_name_short}}"
 
     - role: util-cfg-service
+      service_name_short: "{{templeton_periodic.service_name_short}}"
+      src: "templeton-periodic.yaml.j2"
+      dest: "{{local_cfg_dest}}/templeton-periodic.yaml"
+
+    #- role: util-cfg-service
+    #  service_name_short: "{{templeton_incremental.service_name_short}}"
+    #  src: "templeton-incremental.yaml.j2"
+    #  dest: "{{local_cfg_dest}}/templeton-incremental.yaml"
+
+    - role: util-cfg-service
+      service_name_short: "{{templeton_incremental.service_name_short}}"
+      src: "templeton-incremental.yaml.j2"
+      dest: "{{service_conf_dir}}/templeton-incremental.yaml"
+
+    - role: util-cfg-service
       src: "ui/de-application.yaml.j2"
-      dest: "{{service_conf_dir}}/de-application.yaml"
+      dest: "{{local_cfg_dest}}/de-application.yaml"
       service_name_short: "{{de.service_name_short}}"
 
     - role: util-cfg-service
       src: "ui/de.properties.j2"
-      dest: "{{service_conf_dir}}/de.properties"
+      dest: "{{local_cfg_dest}}/de.properties"
       service_name_short: "{{de.service_name_short}}"
 
     - role: util-cfg-service
       src: "ui/nginx.conf.j2"
-      dest: "{{service_conf_dir}}/nginx/nginx.conf"
+      dest: "{{local_cfg_dest}}/nginx/nginx.conf"
       service_name_short: "{{de.service_name_short}}"
 
     - role: util-cfg-service
       src: "docker-cleanup/docker-gc-exclude-containers.j2"
-      dest: "{{service_conf_dir}}/docker-gc-exclude-containers"
+      dest: "{{local_cfg_dest}}/docker-gc-exclude-containers"
       service_name_short: "docker-gc"
 
     - role: util-cfg-service
       src: "docker-cleanup/docker-gc-exclude.j2"
-      dest: "{{service_conf_dir}}/docker-gc-exclude"
+      dest: "{{local_cfg_dest}}/docker-gc-exclude"
       service_name_short: "docker-gc"
+
+    - role: util-cfg-service
+      service_name_short: jobservices
+      service_cfg_file_name: jobservices.yml
+
+    - role: util-cfg-service
+      service_name_short: "{{permissions.service_name_short}}"
+      src: "permissions.yaml.j2"
+      dest: "{{service_conf_dir}}/permissions.yaml"

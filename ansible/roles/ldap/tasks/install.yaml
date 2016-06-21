@@ -1,0 +1,45 @@
+- name: Add OS-specific varibles
+  include_vars: "{{ ansible_os_family }}.yaml"
+  tags: 
+    - ldap
+    - auth
+
+- name: Install the openldap and required Packages for RedHat
+  yum: name={{ item }} state=installed
+  with_items: ldap_pkgs
+  when: ansible_os_family == 'RedHat'
+  tags: 
+    - ldap
+    - auth
+
+- name: create default DB_CONFIG
+  shell: cp /usr/share/openldap-servers/DB_CONFIG.example /var/lib/ldap/DB_CONFIG
+  when: ansible_os_family == 'RedHat'
+  tags: 
+    - ldap
+    - auth
+
+- name: chown DB_CONFIG to ldap user
+  file: name=/var/lib/ldap/DB_CONFIG owner={{ ldap.user }} mode=0644
+  when: ansible_os_family == 'RedHat'
+  tags: 
+    - ldap
+    - auth
+
+- name: create LDAP logging directory
+  file: name=/var/log/ldap state=directory owner={{ ldap.user }} mode=0755
+  tags: 
+    - ldap
+    - auth
+
+- name: write rsyslog conf file to enable LDAP logging
+  copy: src=ldap-syslog.conf dest=/etc/rsyslog.d/ldap-syslog.conf owner=root group=root mode=0644
+  tags: 
+    - ldap
+    - auth
+
+- name: restart rsyslogd
+  service: name=rsyslog state=restarted
+  tags: 
+    - ldap
+    - auth

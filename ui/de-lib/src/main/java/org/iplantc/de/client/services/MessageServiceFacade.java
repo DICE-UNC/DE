@@ -3,6 +3,8 @@ package org.iplantc.de.client.services;
 import org.iplantc.de.client.models.HasId;
 import org.iplantc.de.client.models.notifications.Counts;
 import org.iplantc.de.client.models.notifications.Notification;
+import org.iplantc.de.client.models.notifications.NotificationCategory;
+import org.iplantc.de.client.models.notifications.NotificationList;
 import org.iplantc.de.client.services.callbacks.NotificationCallback;
 
 import com.google.gwt.json.client.JSONObject;
@@ -25,7 +27,7 @@ public interface MessageServiceFacade {
      *
      * @param callback called on RPC completion.
      */
-    void getRecentMessages(AsyncCallback<List<Notification>> callback);
+    void getRecentMessages(AsyncCallback<NotificationList> callback);
 
     void markAsSeen(List<HasId> seenIds, AsyncCallback<String> callback);
 
@@ -40,20 +42,13 @@ public interface MessageServiceFacade {
     void deleteMessages(JSONObject deleteIds, AsyncCallback<String> callback);
 
     /**
-     * Get messages from the server.
-     *
-     * @param callback called on RPC completion.
-     */
-    <C extends NotificationCallback> void getRecentMessages(C callback);
-
-    /**
      * Retrieves the message counts from the server where the seen parameter is false.
      * 
      * @param callback called on RPC completion
      */
     void getMessageCounts(AsyncCallback<Counts> callback);
 
-    void deleteAll(AsyncCallback<String> callback);
+    void deleteAll(NotificationCategory category, AsyncCallback<String> callback);
 
     void markAllNotificationsSeen(AsyncCallback<Void> callback);
     

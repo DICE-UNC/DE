@@ -1,0 +1,5 @@
+---
+
+include: - de-stop-containers.yml
+include: - de-rm-containers.yml
+include: - de-start-containers.yml

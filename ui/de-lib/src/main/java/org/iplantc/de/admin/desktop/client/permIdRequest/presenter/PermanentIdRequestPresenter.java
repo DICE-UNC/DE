@@ -4,11 +4,16 @@ import org.iplantc.de.admin.desktop.client.permIdRequest.service.PermanentIdRequ
 import org.iplantc.de.admin.desktop.client.permIdRequest.views.PermanentIdRequestView;
 import org.iplantc.de.admin.desktop.client.permIdRequest.views.PermanentIdRequestView.PermanentIdRequestPresenterAppearance;
 import org.iplantc.de.admin.desktop.client.permIdRequest.views.PermanentIdRequestView.Presenter;
+import org.iplantc.de.admin.desktop.client.permIdRequest.views.UpdatePermanentIdRequestDialog;
+import org.iplantc.de.admin.desktop.shared.Belphegor;
+import org.iplantc.de.client.models.diskResources.Folder;
 import org.iplantc.de.client.models.identifiers.PermanentIdRequest;
 import org.iplantc.de.client.models.identifiers.PermanentIdRequestAutoBeanFactory;
+import org.iplantc.de.client.models.identifiers.PermanentIdRequestDetails;
 import org.iplantc.de.client.models.identifiers.PermanentIdRequestList;
 import org.iplantc.de.client.models.identifiers.PermanentIdRequestUpdate;
 import org.iplantc.de.client.services.DiskResourceServiceFacade;
+import org.iplantc.de.commons.client.ErrorHandler;
 import org.iplantc.de.commons.client.info.ErrorAnnouncementConfig;
 import org.iplantc.de.commons.client.info.IplantAnnouncer;
 import org.iplantc.de.commons.client.info.SuccessAnnouncementConfig;
@@ -18,8 +23,8 @@ import org.iplantc.de.resources.client.messages.I18N;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.HasOneWidget;
 import com.google.inject.Inject;
-import com.google.web.bindery.autobean.shared.AutoBean;
-import com.google.web.bindery.autobean.shared.AutoBeanCodex;
+
+import com.sencha.gxt.widget.core.client.event.SelectEvent;
 
 /**
  * 
@@ -57,7 +62,13 @@ public class PermanentIdRequestPresenter implements Presenter {
 
     @Override
     public void fetchMetadata() {
-        view.fetchMetadata(selectedRequest.getFolder(), appearance, drsvc);
+        final Folder selectedFolder = selectedRequest.getFolder();
+        if (selectedFolder != null) {
+            view.fetchMetadata(selectedFolder, appearance, drsvc);
+        } else {
+            final String errMessage = appearance.folderNotFound(selectedRequest.getOriginalPath());
+            IplantAnnouncer.getInstance().schedule(new ErrorAnnouncementConfig(errMessage));
+        }
     }
 
     @Override
@@ -75,7 +86,7 @@ public class PermanentIdRequestPresenter implements Presenter {
     @Override
     public void getPermIdRequests() {
         view.mask(I18N.DISPLAY.loadingMask());
-        prsvc.getPermanentIdRequests(new AsyncCallback<String>() {
+        prsvc.getPermanentIdRequests(new AsyncCallback<PermanentIdRequestList>() {
 
             @Override
             public void onFailure(Throwable caught) {
@@ -85,13 +96,9 @@ public class PermanentIdRequestPresenter implements Presenter {
             }
 
             @Override
-            public void onSuccess(String result) {
-                view.unmask();
-                final AutoBean<PermanentIdRequestList> decode = AutoBeanCodex.decode(factory,
-                                                                                     PermanentIdRequestList.class,
-                                                                                     result);
-
-                view.loadRequests(decode.as().getRequests());
+            public void onSuccess(PermanentIdRequestList result) {
+               view.unmask();
+               view.loadRequests(result.getRequests());
             }
         });
 
@@ -103,7 +110,7 @@ public class PermanentIdRequestPresenter implements Presenter {
     }
 
     @Override
-    public void updateRequest(final PermanentIdRequestUpdate update) {
+    public void doUpdateRequest(final PermanentIdRequestUpdate update) {
         if (selectedRequest != null && update != null) {
             view.mask(I18N.DISPLAY.loadingMask());
             prsvc.updatePermanentIdRequestStatus(selectedRequest.getId(),
@@ -114,7 +121,8 @@ public class PermanentIdRequestPresenter implements Presenter {
                                                      public void onFailure(Throwable caught) {
                                                          view.unmask();
                                                          IplantAnnouncer.getInstance()
-                                                                        .schedule(new ErrorAnnouncementConfig(appearance.statusUpdateFailure()));
+                                                                        .schedule(new ErrorAnnouncementConfig(
+                                                                                appearance.statusUpdateFailure()));
 
                                                      }
 
@@ -122,12 +130,46 @@ public class PermanentIdRequestPresenter implements Presenter {
                                                      public void onSuccess(String result) {
                                                          view.unmask();
                                                          IplantAnnouncer.getInstance()
-                                                                        .schedule(new SuccessAnnouncementConfig(appearance.statusUpdateSuccess()));
+                                                                        .schedule(new SuccessAnnouncementConfig(
+                                                                                appearance.statusUpdateSuccess()));
                                                          selectedRequest.setStatus(update.getStatus());
                                                          view.update(selectedRequest);
                                                      }
                                                  });
         }
+    }
+
+    @Override
+    public void onUpdateRequest() {
+        getRequestDetails(new AsyncCallback<PermanentIdRequestDetails>() {
+            @Override
+            public void onFailure(Throwable caught) {
+                view.unmask();
+                IplantErrorDialog ied = new IplantErrorDialog(I18N.DISPLAY.error(), caught.getMessage());
+                ied.show();
+            }
+
+            @Override
+            public void onSuccess(PermanentIdRequestDetails result) {
+                view.unmask();
+                final UpdatePermanentIdRequestDialog dialog = new UpdatePermanentIdRequestDialog(
+                        selectedRequest.getStatus(),
+                        result,
+                        factory);
+                dialog.setHeadingText(appearance.updateStatus());
+                dialog.getOkButton().setText(appearance.update());
+                dialog.getOkButton().addSelectHandler(new SelectEvent.SelectHandler() {
+
+                    @Override
+                    public void onSelect(SelectEvent event) {
+                        final PermanentIdRequestUpdate update = dialog.getPermanentIdRequestUpdate();
+                        doUpdateRequest(update);
+                    }
+                });
+
+                dialog.show();
+            }
+        });
     }
 
     @Override
@@ -142,8 +184,7 @@ public class PermanentIdRequestPresenter implements Presenter {
                     loadPermIdRequests();
                     IplantAnnouncer.getInstance()
                                    .schedule(new ErrorAnnouncementConfig(appearance.createPermIdFailure()));
-                    IplantErrorDialog ied = new IplantErrorDialog(I18N.DISPLAY.error(), caught.getMessage());
-                    ied.show();
+                    ErrorHandler.post(appearance.createPermIdFailure(), caught);
                 }
 
                 @Override
@@ -152,7 +193,7 @@ public class PermanentIdRequestPresenter implements Presenter {
                     IplantAnnouncer.getInstance()
                                    .schedule(new SuccessAnnouncementConfig(appearance.createPermIdSucess()));
 
-                  //refresh page
+                    //refresh page
                     loadPermIdRequests();
 
                 }
@@ -160,4 +201,17 @@ public class PermanentIdRequestPresenter implements Presenter {
         }
     }
 
+    @Override
+    public void getRequestDetails(AsyncCallback<PermanentIdRequestDetails> callback) {
+        if (selectedRequest != null) {
+            view.mask(I18N.DISPLAY.loadingMask());
+            prsvc.getRequestDetails(selectedRequest.getId(), callback);
+        }
+
+    }
+
+    @Override
+    public void setViewDebugId(String baseId) {
+        view.asWidget().ensureDebugId(baseId + Belphegor.PermIds.VIEW);
+    }
 }

@@ -5,12 +5,13 @@
 (defprotocol DeAgaveClient
   "An Agave client with customizations that are specific to the discovery environment."
   (hpcAppGroup [_])
-  (listApps [_])
+  (listApps [_] [_ app-ids])
   (searchApps [_ search-term])
   (getApp [_ app-id])
   (getAppDetails [_ app-id])
   (listAppTasks [_ app-id])
   (getAppToolListing [_ app-id])
+  (getAppInputIds [_ app-id])
   (submitJob [_ submission])
   (prepareJobSubmission [_ submission])
   (sendJobSubmission [_ submission])
@@ -30,6 +31,8 @@
     (v2/hpc-app-group))
   (listApps [_]
     (v2/list-apps agave jobs-enabled?))
+  (listApps [_ app-ids]
+    (v2/list-apps agave jobs-enabled? app-ids))
   (searchApps [_ search-term]
     (v2/search-apps agave jobs-enabled? search-term))
   (getApp [_ app-id]
@@ -40,6 +43,8 @@
     (v2/list-app-tasks agave app-id))
   (getAppToolListing [_ app-id]
     (v2/get-app-tool-listing agave app-id))
+  (getAppInputIds [_ app-id]
+    (v2/get-app-input-ids agave app-id))
   (submitJob [this submission]
     (->> (.prepareJobSubmission this submission)
          (.sendJobSubmission this)))

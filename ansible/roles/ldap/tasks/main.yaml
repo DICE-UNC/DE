@@ -1,0 +1,5 @@
+---
+- include: install.yaml
+- include: configure.yaml
+- include: load-schema.yaml
+- include: final.yaml

@@ -1,0 +1,172 @@
+---
+
+### do we want the irods database hosted locally, or on de-db?
+
+- name: ensure epel-release is installed for irods dependencies below
+  yum: name=epel-release state=latest
+  when: ansible_os_family == "RedHat" and
+        ansible_distribution_major_version == "7"
+  tags: irods
+
+- name: ensure pyscopg2 is installed for ansible postgres module
+  yum: name=python-psycopg2 state=latest
+  when: ansible_os_family == "RedHat" and
+        ansible_distribution_major_version == "7"
+  tags: irods
+
+- name: install postgres-9.3 repo on Redhat / CentOS 7. irods requires 9.3.
+  yum:  name=http://yum.postgresql.org/9.3/redhat/rhel-7-x86_64/pgdg-centos93-9.3-2.noarch.rpm state=present
+  when: ansible_os_family == "RedHat" and
+        ansible_distribution_major_version == "7"
+  tags: irods
+
+- name: install postgres-9.3 on RedHat / CentOS 7.
+  yum:  name=postgresql93-server state=latest
+  when: ansible_os_family == "RedHat" and
+        ansible_distribution_major_version == "7"
+  tags: irods
+
+- name: init postgres-9.3 on RedHat / CentOS 7
+  shell: "/usr/pgsql-9.3/bin/postgresql93-setup initdb"
+  when: ansible_os_family == "RedHat" and
+        ansible_distribution_major_version == "7"
+  ignore_errors: true
+  tags: irods
+
+- name: remove localhost listeners
+  lineinfile: dest=/var/lib/pgsql/9.3/data/pg_hba.conf regexp="^host" state=absent
+  when: ansible_os_family == "RedHat" and
+        ansible_distribution_major_version == "7"
+  tags: irods
+
+- name: add global ipv4 listener
+  lineinfile: dest=/var/lib/pgsql/9.3/data/pg_hba.conf line='host    all             all             0.0.0.0/0            password' state=present
+  when: ansible_os_family == "RedHat" and
+        ansible_distribution_major_version == "7"
+  tags: irods
+
+- name: set listen_addresses to wildcard
+  lineinfile: dest=/var/lib/pgsql/9.3/data/postgresql.conf line="listen_addresses = \'*\'" state=present
+  when: ansible_os_family == "RedHat" and
+        ansible_distribution_major_version == "7"
+  tags: irods
+
+- name: enable postgres-9.3 on RedHat / CentOS 7.
+  service: name=postgresql-9.3 enabled=yes
+  when: ansible_os_family == "RedHat" and
+        ansible_distribution_major_version == "7"
+  tags: irods
+
+- name: start postgres-9.3 on RedHat / CentOS 7.
+  service: name=postgresql-9.3 state=restarted
+  when: ansible_os_family == "RedHat" and
+        ansible_distribution_major_version == "7"
+  tags: irods
+
+- name: Create PostgreSQL Database
+  sudo: yes
+  sudo_user: postgres
+  postgresql_db: name={{ irods.icat.db }}
+
+- name: grant access to user
+  sudo: yes
+  sudo_user: postgres
+  postgresql_user: db={{ irods.icat.db }} name={{ irods.icat.user }} password={{ irods.icat.password }} priv=ALL
+
+- name: ensure icat.irods.user does not have unnecessary privilege
+  sudo: yes
+  sudo_user: postgres
+  postgresql_user: name={{ irods.icat.user }} role_attr_flags=NOSUPERUSER,NOCREATEDB
+
+- name: download iCAT for Debian
+  get_url: url={{ irods_icat_pkg }} dest=/home/{{ ansible_ssh_user }}/
+  when: ansible_os_family == 'Debian'
+
+- name: download iRODS postgreSQL plugin for Debian
+  get_url: url={{ irods_postgres_pkg }} dest=/home/{{ ansible_ssh_user }}/
+  when: ansible_os_family == 'Debian'
+
+- name: install iRODS dependencies for Debian
+  apt:
+    name: "{{item}}"
+    state: latest
+  with_items:
+    - python-jinja2
+    - python-jsonschema
+    - python-pip
+  when: ansible_os_family == 'Debian'
+
+- name: install iRODS dependencies for RedHat/CentOS
+  yum:
+    name: "{{item}}"
+    state: latest
+  with_items:
+    - python-jinja2
+    - python-jsonschema
+    - python-pip
+  when: ansible_os_family == 'RedHat' and
+        ansible_distribution_major_version == '7'
+
+- name: Install iCAT on Debian
+  shell: dpkg -i /home/{{ ansible_ssh_user }}/{{ icat_pkg }}; apt-get -y -f install
+  when: ansible_os_family == 'Debian'
+
+- name: Install iCAT on CentOS7
+  yum:  name={{ irods_icat_rpm }} state=present
+  when: ansible_os_family == 'RedHat' and
+        ansible_distribution_major_version == '7'
+
+- name: ensure irods group exists
+  group: name={{ irods.service_group }} state=present
+  when: ansible_os_family == 'RedHat' and
+        ansible_distribution_major_version == '7'
+
+- name: ensure irods user exists
+  user: name={{ irods.service_acct }} state=present group={{ irods.service_group }}
+  when: ansible_os_family == 'RedHat' and
+        ansible_distribution_major_version == '7'
+
+- name: Install Postgres Plugin on Debian/Ubuntu
+  shell: dpkg -i /home/{{ ansible_ssh_user }}/{{ postgres_pkg }}; apt-get -y -f install
+  when: ansible_os_family == 'Debian'
+
+- name: Install Postgres Plugin on CentOS7
+  yum: name={{ irods_postgres_rpm }} state=present
+  when: ansible_os_family == 'RedHat' and
+        ansible_distribution_major_version == '7'
+
+- name: response bootstrapping
+  template: src=genresponse.j2 dest=/home/{{ ansible_ssh_user }}/genresponse.sh
+
+- name: generate setup responses
+  shell: mkdir -p /opt/irods;
+         mv /home/{{ ansible_ssh_user }}/genresponse.sh /opt/irods/genresponse.sh;
+         chmod +x /opt/irods/genresponse.sh;
+         /opt/irods/genresponse.sh /opt/irods/setup_responses
+
+- name: irods setup requires FQDN
+  hostname: name={{ inventory_hostname }}
+
+- name: config iCAT server
+  sudo: yes
+  sudo_user: root
+  shell: /var/lib/irods/packaging/setup_irods.sh < /opt/irods/setup_responses
+
+- name: install server_config.json template
+  sudo: yes
+  sudo_user: root
+  template: src=server_config.json.j2 dest=/etc/irods/server_config.json owner=irods group=irods mode=0644
+
+- name: create default resource
+  sudo: yes
+  sudo_user: irods
+  shell: "iadmin mkresc {{ irods.default_resource}} unixfilesystem {{ irods.host }}:{{ irods.default_resource_path }}"
+
+- name: add irods_user to rodsadmin group
+  sudo: yes
+  sudo_user: irods
+  shell: "iadmin atg rodsadmin {{ irods.user }}"
+
+# systemctl call errors out, use init.d instead
+- name: restart irods service
+  shell: "/etc/init.d/irods restart"

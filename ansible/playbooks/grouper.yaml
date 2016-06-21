@@ -1,0 +1,8 @@
+---
+- name: Deploy Grouper
+  hosts: grouper
+  sudo: yes
+  roles:
+      #- role: services-common
+      #  tags: [ 'init_iplant_user' ]
+      - role: grouper

@@ -1,10 +1,11 @@
 package org.iplantc.de.admin.desktop.client.permIdRequest.views;
 
+import org.iplantc.de.admin.desktop.client.permIdRequest.model.PermanentIdRequestPathProvider;
+import org.iplantc.de.admin.desktop.shared.Belphegor;
 import org.iplantc.de.client.models.diskResources.Folder;
 import org.iplantc.de.client.models.identifiers.PermanentIdRequest;
 import org.iplantc.de.client.models.identifiers.PermanentIdRequestAutoBeanFactory;
 import org.iplantc.de.client.models.identifiers.PermanentIdRequestType;
-import org.iplantc.de.client.models.identifiers.PermanentIdRequestUpdate;
 import org.iplantc.de.client.services.DiskResourceServiceFacade;
 
 import com.google.gwt.core.client.GWT;
@@ -23,7 +24,6 @@ import com.sencha.gxt.widget.core.client.box.MessageBox;
 import com.sencha.gxt.widget.core.client.button.TextButton;
 import com.sencha.gxt.widget.core.client.event.DialogHideEvent;
 import com.sencha.gxt.widget.core.client.event.DialogHideEvent.DialogHideHandler;
-import com.sencha.gxt.widget.core.client.event.SelectEvent.SelectHandler;
 import com.sencha.gxt.widget.core.client.event.SelectEvent;
 import com.sencha.gxt.widget.core.client.grid.ColumnConfig;
 import com.sencha.gxt.widget.core.client.grid.ColumnModel;
@@ -95,25 +95,19 @@ public class PermanentIdRequestViewImpl extends Composite implements PermanentId
         grid.getView().setEmptyText(appearance.noRows());
     }
 
+    @Override
+    protected void onEnsureDebugId(String baseID) {
+        super.onEnsureDebugId(baseID);
+
+        updateBtn.ensureDebugId(baseID + Belphegor.PermIds.UPDATE);
+        metadataBtn.ensureDebugId(baseID + Belphegor.PermIds.METADATA);
+        createDOIBtn.ensureDebugId(baseID + Belphegor.PermIds.DOI);
+        grid.ensureDebugId(baseID + Belphegor.PermIds.GRID);
+    }
+
     @UiHandler("updateBtn")
     void onUpdateBtnClicked(SelectEvent event) {
-        final UpdatePermanentIdRequestDialog dialog = new UpdatePermanentIdRequestDialog(grid.getSelectionModel()
-                                                                                             .getSelectedItem(),
-                                                                                         presenter,
-                                                                                         factory);
-
-        dialog.setHeadingText(appearance.updateStatus());
-        dialog.getOkButton().setText(appearance.update());
-        dialog.getOkButton().addSelectHandler(new SelectHandler() {
-
-            @Override
-            public void onSelect(SelectEvent event) {
-                final PermanentIdRequestUpdate update = dialog.getPermanentIdRequestUpdate();
-                presenter.updateRequest(update);
-            }
-        });
-
-        dialog.show();
+       presenter.onUpdateRequest();
     }
 
     @UiHandler("metadataBtn")
@@ -157,6 +151,14 @@ public class PermanentIdRequestViewImpl extends Composite implements PermanentId
             }
         });
         amb.show();
+        setMsgBoxDebugIds(amb);
+    }
+
+    private void setMsgBoxDebugIds(MessageBox amb) {
+        amb.ensureDebugId(Belphegor.PermIds.CREATE_DOI_MSG);
+        amb.getButton(PredefinedButton.CANCEL).ensureDebugId(Belphegor.PermIds.CREATE_DOI_MSG + Belphegor.PermIds.CANCEL);
+        amb.getButton(PredefinedButton.YES).ensureDebugId(Belphegor.PermIds.CREATE_DOI_MSG + Belphegor.PermIds.YES);
+        amb.getButton(PredefinedButton.NO).ensureDebugId(Belphegor.PermIds.CREATE_DOI_MSG + Belphegor.PermIds.NO);
     }
 
     @UiFactory
@@ -170,7 +172,7 @@ public class PermanentIdRequestViewImpl extends Composite implements PermanentId
         ColumnConfig<PermanentIdRequest, String> nameCol = new ColumnConfig<>(pr_props.requestedBy(),
                                                                               appearance.nameColumnWidth(),
                                                                               appearance.nameColumnLabel());
-        ColumnConfig<PermanentIdRequest, String> pathCol = new ColumnConfig<>(pr_props.path(),
+        ColumnConfig<PermanentIdRequest, String> pathCol = new ColumnConfig<>(new PermanentIdRequestPathProvider(appearance),
                                                                               appearance.pathColumnWidth(),
                                                                               appearance.pathColumnLabel());
         ColumnConfig<PermanentIdRequest, Date> dateSubCol = new ColumnConfig<>(pr_props.dateSubmitted(),

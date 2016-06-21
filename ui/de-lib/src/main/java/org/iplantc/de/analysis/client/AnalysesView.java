@@ -3,6 +3,7 @@ package org.iplantc.de.analysis.client;
 import org.iplantc.de.analysis.client.events.HTAnalysisExpandEvent;
 import org.iplantc.de.analysis.client.events.selection.AnalysisAppSelectedEvent;
 import org.iplantc.de.analysis.client.events.selection.AnalysisNameSelectedEvent;
+import org.iplantc.de.analysis.client.models.AnalysisFilter;
 import org.iplantc.de.client.models.analysis.Analysis;
 import org.iplantc.de.theme.base.client.analyses.AnalysesViewDefaultAppearance.AnalysisInfoStyle;
 
@@ -112,9 +113,23 @@ public interface AnalysesView extends IsWidget,
         AnalysisInfoStyle css();
 
         ImageResource shareIcon();
+
+        String share();
+
+        String shareCollab();
+
+        String shareSupport();
+
+        String shareSupportConfirm();
+
+        String shareWithInput();
+
+        String shareOutputOnly();
     }
 
     interface Presenter {
+
+        void onShareSupportSelected(List<Analysis> currentSelection, boolean shareInputs);
 
         interface Appearance {
 
@@ -166,6 +181,14 @@ public interface AnalysesView extends IsWidget,
         void getAnalysisStepInfo(Analysis value);
 
         void onShareSelected(List<Analysis> selected);
+
+        void setCurrentFilter(AnalysisFilter filter);
+
+        AnalysisFilter getCurrentFilter();
+
+        void loadAnalyses(AnalysisFilter filter);
+
+        void setFilterInView(AnalysisFilter filter);
     }
 
     void filterByAnalysisId(String id, String name);
@@ -175,5 +198,8 @@ public interface AnalysesView extends IsWidget,
     List<Analysis> getSelectedAnalyses();
 
     void setSelectedAnalyses(List<Analysis> selectedAnalyses);
+
+    void setFilterInView(AnalysisFilter filter);
+
 
 }

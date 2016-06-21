@@ -1,0 +1,4 @@
+---
+
+- include: irods-install.yaml
+- include: irods-config.yaml

@@ -1,0 +1,19 @@
+---
+- name: Add Elastic repo public signing key
+  shell: rpm --import https://packages.elastic.co/GPG-KEY-elasticsearch
+  tags: 
+     - install
+
+- name: Add Beats repo
+  copy: src=beats.repo dest=/etc/yum.repos.d/ mode=0644
+  tags: 
+     - install
+
+- name: Install Filebeat
+  yum:
+    name: "filebeat{% if filebeat_version is defined %}-{{filebeat_version}}{% endif %}"
+    update_cache: yes
+    state: present
+  tags: 
+     - install
+

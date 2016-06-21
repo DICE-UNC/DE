@@ -1,0 +1,71 @@
+---
+
+- name: Create the necessary directories
+  sudo: yes
+  file:
+    dest: "{{item}}"
+    state: directory
+    owner: "{{postgresql_admin_user}}"
+    group: "{{postgresql_admin_group}}"
+  with_items:
+    - "{{postgresql_conf_directory}}"
+    - "{{postgresql_data_directory}}"
+    - "{{postgresql_runtime_directory}}"
+    - "{{postgresql_log_directory}}"
+  tags:
+    - postgresql
+    - db
+    - conf
+
+- name: Configure PostgreSQL
+  sudo: yes
+  template:
+    src: "{{item}}"
+    dest: "{{postgresql_conf_directory}}/{{item}}"
+  with_items:
+    - postgresql.conf
+    - pg_ctl.conf
+    - environment
+  notify: restart postgresql
+  tags:
+    - postgresql
+    - db
+    - conf
+
+- name: Configure PostgreSQL authentication
+  sudo: yes
+  template: src=pg_hba.conf dest="{{postgresql_hba_file}}"
+  notify: restart postgresql
+  tags:
+    - postgresql
+    - db
+    - conf
+
+- name: Configure PostgreSQL ident
+  sudo: yes
+  template:
+    src: pg_ident.conf
+    dest: "{{postgresql_ident_file}}"
+  notify: restart postgresql
+  tags:
+    - postgresql
+    - db
+    - conf
+
+- name: restart postgresql
+  sudo: yes
+  service: name=postgresql-{{de_db_pgsql_major}} state=restarted
+  tags:
+    - postgresql
+    - db
+    - conf
+
+- name: post install -- set admin user's password
+  sudo: yes
+  sudo_user: postgres
+  #when: postgresql_init|changed and ansible_distribution == "CentOS"
+  postgresql_user: name={{db_admin}} password={{db_admin_password}} state=present login_user=postgres role_attr_flags=SUPERUSER
+  tags:
+    - postgresql
+    - db
+    - conf

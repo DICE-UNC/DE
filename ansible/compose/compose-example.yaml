@@ -1,0 +1,513 @@
+iplant_data_apps:
+  image: docker.example.org:65000/iplant_data:latest
+  container_name: iplant-data-apps
+
+iplant_data_de_ui:
+  image: docker.example.org:65000/iplant_data:latest
+  container_name: iplant-data-de-ui
+
+iplant_data_de_ui_nginx:
+  image: docker.example.org:65000/iplant_data:latest
+  container_name: iplant-data-de-ui-nginx
+
+iplant_data_terrain:
+  image: docker.example.org:65000/iplant_data:latest
+  container_name: iplant-data-terrain
+
+###
+# Set up the configuration containers
+#
+# The DE stores all of its configuration settings in docker containers in order to make it easier
+# to distribute updated configuration settings. All of the configuration files are stored in a
+# single docker image, but each service gets its own container, which prevents us from having to
+# restart all services in the event of a configuration change that only affects a few.
+###
+config_anon_files:
+  image: docker.example.org:65000/de-configs-${DE_ENV}:${DE_TAG}
+  container_name: config-anon-files
+
+config_apps:
+  image: docker.example.org:65000/de-configs-${DE_ENV}:${DE_TAG}
+  container_name: config-apps
+
+config_clockwork:
+  image: docker.example.org:65000/de-configs-${DE_ENV}:${DE_TAG}
+  container_name: config-clockwork
+
+config_clm:
+  image: docker.example.org:65000/de-configs-${DE_ENV}:${DE_TAG}
+  container_name: config-clm
+
+config_data_info:
+  image: docker.example.org:65000/de-configs-${DE_ENV}:${DE_TAG}
+  container_name: config-data-info
+
+config_de_ui:
+  image: docker.example.org:65000/de-configs-${DE_ENV}:${DE_TAG}
+  container_name: config-de-ui
+
+config_de_ui_nginx:
+  image: docker.example.org:65000/de-configs-${DE_ENV}:${DE_TAG}
+  container_name: config-de-ui-nginx
+
+config_dewey:
+  image: docker.example.org:65000/de-configs-${DE_ENV}:${DE_TAG}
+  container_name: config-dewey
+
+config_info_typer:
+  image: docker.example.org:65000/de-configs-${DE_ENV}:${DE_TAG}
+  container_name: config-info-typer
+
+config_infosquito:
+  image: docker.example.org:65000/de-configs-${DE_ENV}:${DE_TAG}
+  container_name: config-infosquito
+
+config_iplant_email:
+  image: docker.example.org:65000/de-configs-${DE_ENV}:${DE_TAG}
+  container_name: config-iplant-email
+
+config_iplant_groups:
+  image: docker.example.org:65000/de-configs-${DE_ENV}:${DE_TAG}
+  container_name: config-iplant-groups
+
+config_jex_events:
+  image: docker.example.org:65000/de-configs-${DE_ENV}:${DE_TAG}
+  container_name: config-jex-events
+
+config_kifshare:
+  image: docker.example.org:65000/de-configs-${DE_ENV}:${DE_TAG}
+  container_name: config-kifshare
+
+config_metadata:
+  image: docker.example.org:65000/de-configs-${DE_ENV}:${DE_TAG}
+  container_name: config-metadata
+
+config_monkey:
+  image: docker.example.org:65000/de-configs-${DE_ENV}:${DE_TAG}
+  container_name: config-monkey
+
+config_notification_agent:
+  image: docker.example.org:65000/de-configs-${DE_ENV}:${DE_TAG}
+  container_name: config-notification-agent
+
+config_saved_searches:
+  image: docker.example.org:65000/de-configs-${DE_ENV}:${DE_TAG}
+  container_name: config-saved-searches
+
+config_terrain:
+  image: docker.example.org:65000/de-configs-${DE_ENV}:${DE_TAG}
+  container_name: config-terrain
+
+config_tree_urls:
+  image: docker.example.org:65000/de-configs-${DE_ENV}:${DE_TAG}
+  container_name: config-tree-urls
+
+config_user_preferences:
+  image: docker.example.org:65000/de-configs-${DE_ENV}:${DE_TAG}
+  container_name: config-user-preferences
+
+config_user_sessions:
+  image: docker.example.org:65000/de-configs-${DE_ENV}:${DE_TAG}
+  container_name: config-user-sessions
+
+###
+# Service and UI definitions
+###
+anon_files:
+  image: discoenv/anon-files:${DE_TAG}
+  container_name: anon-files
+  command: --config /etc/iplant/de/anon-files.properties
+  restart: on-failure:3
+  environment:
+    - JAVA_TOOL_OPTIONS="-Xmx1G"
+  ports:
+    - "65001:60000"
+  log_driver: "syslog"
+  log_opt:
+    syslog-tag: anon-files
+  volumes_from:
+    - config_anon_files
+  volumes:
+    - /etc/localtime:/etc/localtime
+    - /etc/timezone:/etc/timezone
+
+apps:
+  image: discoenv/apps:${DE_TAG}
+  container_name: apps
+  command: --config /etc/iplant/de/apps.properties
+  restart: on-failure:3
+  environment:
+    - JAVA_TOOL_OPTIONS="-Xmx1G"
+  ports:
+    - "65002:60000"
+  log_driver: "syslog"
+  log_opt:
+    syslog-tag: apps
+  volumes_from:
+    - iplant_data_apps
+    - config_apps
+  volumes:
+    - /etc/localtime:/etc/localtime
+    - /etc/timezone:/etc/timezone
+
+clockwork:
+  image: discoenv/clockwork:${DE_TAG}
+  container_name: clockwork
+  command: --config /etc/iplant/de/clockwork.properties
+  restart: on-failure:3
+  environment:
+    - JAVA_TOOL_OPTIONS="-Xmx512M"
+  log_driver: "syslog"
+  log_opt:
+    syslog-tag: clockwork
+  volumes_from:
+    - config_clockwork
+  volumes:
+    - /etc/localtime:/etc/localtime
+    - /etc/timezone:/etc/timezone
+
+clm:
+  image: discoenv/jex-events:${DE_TAG}
+  container_name: clm
+  command: --mode monitor --config /etc/iplant/de/jexevents.properties
+  restart: on-failure:3
+  log_driver: "syslog"
+  log_opt:
+    syslog-tag: condor-log-monitor
+  volumes_from:
+    - config_clm
+  volumes:
+    - /var/log/condor/:/var/log/condor/
+    - /etc/localtime:/etc/localtime
+    - /etc/timezone:/etc/timezone
+
+data_info:
+  image: discoenv/data-info:${DE_TAG}
+  container_name: data-info
+  command: --config /etc/iplant/de/data-info.properties
+  restart: on-failure:3
+  environment:
+    - JAVA_TOOL_OPTIONS="-Xmx1G"
+  ports:
+    - "65014:60000"
+  log_driver: "syslog"
+  log_opt:
+    syslog-tag: data-info
+  volumes_from:
+    - config_data_info
+  volumes:
+    - /etc/localtime:/etc/localtime
+    - /etc/timezone:/etc/timezone
+
+de_ui:
+  image: discoenv/de:${DE_TAG}
+  container_name: de-ui
+  restart: on-failure:3
+  expose:
+    - "8080"
+  log_driver: "syslog"
+  log_opt:
+    syslog-tag: ui
+  volumes_from:
+    - iplant_data_de_ui
+    - config_de_ui
+  volumes:
+    - /var/log/de/:/home/iplant/log/
+    - /etc/localtime:/etc/localtime
+    - /etc/timezone:/etc/timezone
+
+de_ui_nginx:
+  image: nginx
+  container_name: de-ui-nginx
+  restart: on-failure:3
+  ports:
+    - "80:80"
+    - "443:443"
+  log_driver: "syslog"
+  log_opt:
+    syslog-tag: de-ui-nginx
+  volumes_from:
+    - iplant_data_de_ui_nginx
+    - config_de_ui_nginx
+  volumes:
+    - /etc/localtime:/etc/localtime
+    - /etc/timezone:/etc/timezone
+  links:
+    - de_ui:de-host
+
+dewey:
+  image: discoenv/dewey:${DE_TAG}
+  container_name: dewey
+  command: --config /etc/iplant/de/dewey.properties
+  restart: on-failure:3
+  environment:
+    - JAVA_TOOL_OPTIONS="-Xmx512M"
+  log_driver: "syslog"
+  log_opt:
+    syslog-tag: dewey
+  volumes_from:
+    - config_dewey
+  volumes:
+    - /etc/localtime:/etc/localtime
+    - /etc/timezone:/etc/timezone
+
+exim_sender:
+  image: discoenv/exim-sender
+  container_name: exim
+  restart: on-failure:3
+  environment:
+    - PRIMARY_HOST=iplantcollaborative.org
+    - ALLOWED_HOSTS=*
+  log_driver: "syslog"
+  log_opt:
+    syslog-tag: exim-sender
+  volumes:
+    - /etc/localtime:/etc/localtime
+    - /etc/timezone:/etc/timezone
+
+info_typer:
+  image: discoenv/info-typer:${DE_TAG}
+  container_name: info-typer
+  command: --config /etc/iplant/de/info-typer.properties
+  restart: on-failure:3
+  environment:
+    - JAVA_TOOL_OPTIONS="-Xmx512M"
+  log_driver: "syslog"
+  log_opt:
+    syslog-tag: info-typer
+  volumes_from:
+    - config_info_typer
+  volumes:
+    - /etc/localtime:/etc/localtime
+    - /etc/timezone:/etc/timezone
+
+infosquito:
+  image: discoenv/infosquito:${DE_TAG}
+  container_name: infosquito
+  command: --config /etc/iplant/de/infosquito.properties
+  restart: on-failure:3
+  environment:
+    - JAVA_TOOL_OPTIONS="-Xmx512M"
+  log_driver: "syslog"
+  log_opt:
+    syslog-tag: infosquito
+  volumes_from:
+    - config_infosquito
+  volumes:
+    - /etc/localtime:/etc/localtime
+    - /etc/timezone:/etc/timezone
+
+iplant_email:
+  image: discoenv/iplant-email:${DE_TAG}
+  container_name: iplant-email
+  command: --config /etc/iplant/de/iplant-email.properties
+  restart: on-failure:3
+  environment:
+    - JAVA_TOOL_OPTIONS="-Xmx512M"
+  ports:
+    - "65003:60000"
+  log_driver: "syslog"
+  log_opt:
+    syslog-tag: iplant-email
+  volumes_from:
+    - config_iplant_email
+  volumes:
+    - /etc/localtime:/etc/localtime
+    - /etc/timezone:/etc/timezone
+  links:
+    - exim_sender:local-exim
+
+iplant_groups:
+  image: discoenv/iplant-groups:${DE_TAG}
+  container_name: iplant-groups
+  command: --config /etc/iplant/de/iplant-groups.properties
+  restart: on-failure:3
+  environment:
+    - JAVA_TOOL_OPTIONS="-Xmx512M"
+  ports:
+    - "65004:60000"
+  log_driver: "syslog"
+  log_opt:
+    syslog-tag: iplant-groups
+  volumes_from:
+    - config_iplant_groups
+  volumes:
+    - /etc/localtime:/etc/localtime
+    - /etc/timezone:/etc/timezone
+
+jex_events:
+  image: discoenv/jex-events:${DE_TAG}
+  container_name: jex-events
+  command: --mode events --config /etc/iplant/de/jexevents.properties
+  restart: on-failure:3
+  ports:
+    - "65005:60000"
+  log_driver: "syslog"
+  log_opt:
+    syslog-tag: jexevents
+  volumes_from:
+    - config_jex_events
+  volumes:
+    - /etc/localtime:/etc/localtime
+    - /etc/timezone:/etc/timezone
+
+kifshare:
+  image: discoenv/kifshare:${DE_TAG}
+  container_name: kifshare
+  command: --config /etc/iplant/de/kifshare.properties
+  restart: on-failure:3
+  environment:
+    - JAVA_TOOL_OPTIONS="-Xmx1G"
+  ports:
+    - "65006:60000"
+  log_driver: "syslog"
+  log_opt:
+    syslog-tag: kifshare
+  volumes_from:
+    - config_kifshare
+  volumes:
+    - /etc/localtime:/etc/localtime
+    - /etc/timezone:/etc/timezone
+
+metadata:
+  image: discoenv/metadata:${DE_TAG}
+  container_name: metadata
+  command: --config /etc/iplant/de/metadata.properties
+  restart: on-failure:3
+  environment:
+    - JAVA_TOOL_OPTIONS="-Xmx1G"
+  ports:
+    - "65007:60000"
+  log_driver: "syslog"
+  log_opt:
+    syslog-tag: metadata
+  volumes_from:
+    - config_metadata
+  volumes:
+    - /etc/localtime:/etc/localtime
+    - /etc/timezone:/etc/timezone
+
+monkey:
+  image: discoenv/monkey:${DE_TAG}
+  container_name: monkey
+  command: --config /etc/iplant/de/monkey.properties
+  restart: on-failure:3
+  environment:
+    - JAVA_TOOL_OPTIONS="-Xmx512M"
+  log_driver: "syslog"
+  log_opt:
+    syslog-tag: monkey
+  volumes_from:
+    - config_monkey
+  volumes:
+    - /etc/localtime:/etc/localtime
+    - /etc/timezone:/etc/timezone
+
+notification_agent:
+  image: discoenv/notificationagent:${DE_TAG}
+  container_name: notification-agent
+  command: --config /etc/iplant/de/notificationagent.properties
+  restart: on-failure:3
+  environment:
+    - JAVA_TOOL_OPTIONS="-Xmx512M"
+  ports:
+    - "65008:60000"
+  log_driver: "syslog"
+  log_opt:
+    syslog-tag: notificationagent
+  volumes_from:
+    - config_notification_agent
+  volumes:
+    - /etc/localtime:/etc/localtime
+    - /etc/timezone:/etc/timezone
+
+saved_searches:
+  image: discoenv/saved-searches:${DE_TAG}
+  container_name: saved-searches
+  command: --config /etc/iplant/de/saved-searches.properties
+  restart: on-failure:3
+  environment:
+    - JAVA_TOOL_OPTIONS="-Xmx512M"
+  ports:
+    - "65009:60000"
+  log_driver: "syslog"
+  log_opt:
+    syslog-tag: saved-searches
+  volumes_from:
+    - config_saved_searches
+  volumes:
+    - /etc/localtime:/etc/localtime
+    - /etc/timezone:/etc/timezone
+
+terrain:
+  image: discoenv/terrain:${DE_TAG}
+  container_name: terrain
+  command: --config /etc/iplant/de/terrain.properties
+  restart: on-failure:3
+  environment:
+    - JAVA_TOOL_OPTIONS="-Xmx1G"
+  ports:
+    - "65010:60000"
+  log_driver: "syslog"
+  log_opt:
+    syslog-tag: terrain
+  volumes_from:
+    - iplant_data_terrain
+    - config_terrain
+  volumes:
+    - /etc/localtime:/etc/localtime
+    - /etc/timezone:/etc/timezone
+
+tree_urls:
+  image: discoenv/tree-urls:${DE_TAG}
+  container_name: tree-urls
+  command: --config /etc/iplant/de/tree-urls.properties
+  restart: on-failure:3
+  environment:
+    - JAVA_TOOL_OPTIONS="-Xmx512M"
+  ports:
+    - "65011:60000"
+  log_driver: "syslog"
+  log_opt:
+    syslog-tag: tree-urls
+  volumes_from:
+    - config_tree_urls
+  volumes:
+    - /etc/localtime:/etc/localtime
+    - /etc/timezone:/etc/timezone
+
+user_preferences:
+  image: discoenv/user-preferences:${DE_TAG}
+  container_name: user-preferences
+  command: --config /etc/iplant/de/user-preferences.properties
+  restart: on-failure:3
+  environment:
+    - JAVA_TOOL_OPTIONS="-Xmx512M"
+  ports:
+    - "65012:60000"
+  log_driver: "syslog"
+  log_opt:
+    syslog-tag: user-preferences
+  volumes_from:
+    - config_user_preferences
+  volumes:
+    - /etc/localtime:/etc/localtime
+    - /etc/timezone:/etc/timezone
+
+user_sessions:
+  image: discoenv/user-sessions:${DE_TAG}
+  container_name: user-sessions
+  command: --config /etc/iplant/de/user-sessions.properties
+  restart: on-failure:3
+  environment:
+    - JAVA_TOOL_OPTIONS="-Xmx512M"
+  ports:
+    - "65013:60000"
+  log_driver: "syslog"
+  log_opt:
+    syslog-tag: user-sessions
+  volumes_from:
+    - config_user_sessions
+  volumes:
+    - /etc/localtime:/etc/localtime
+    - /etc/timezone:/etc/timezone

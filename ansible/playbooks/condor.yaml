@@ -1,0 +1,11 @@
+- hosts: condor:condor-submission:services
+  sudo: yes
+  sudo_user: root
+  roles:
+    - role: condor
+
+#- hosts: condor-submission:services
+#  sudo: yes
+#  sudo_user: root
+#  roles:
+#    - role: de-condor-submitter

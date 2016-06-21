@@ -1,0 +1,27 @@
+# Installs logstash to the elasticsearch client node
+#
+---
+- hosts: elasticsearch[0]:&systems
+  become: true
+  vars:
+      ssl_docker:
+          image: "{{docker.registry.base}}/{{data_container.image_name}}"
+          container: "{{data_container.container_name}}"
+          cert_path: "{{logstash.ssl.cert}}"
+          key_path: "{{logstash.ssl.key}}"
+      ssl_dest:
+          cert_path: "{{logstash.ssl.cert}}"
+          key_path: "{{logstash.ssl.key}}"
+          owner: "logstash"
+          group: "logstash"
+  roles:
+      - role: infra-place-ssl-keys
+
+- hosts: elasticsearch[0]:&systems
+  become: true
+  vars:
+      logstash_elasticsearch_host: "{{groups['elasticsearch'][0]}}:{{elasticsearch.network_http_port}}"
+      logstash_plugins:
+          - plugin: logstash-input-beats
+  roles:
+      - role: support-logstash-cfg

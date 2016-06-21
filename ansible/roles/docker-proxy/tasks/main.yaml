@@ -1,0 +1,15 @@
+---
+- name: Creates directory for systemd for docker
+  file: path=/etc/systemd/system/docker.service.d state=directory
+  sudo: yes
+
+- name: set the docker proxies
+  sudo: yes
+  template: src=http-proxy.conf.j2 dest=/etc/systemd/system/docker.service.d/http-proxy.conf owner=root group=root mode=0644
+
+- name: reload systemd
+  command: /usr/bin/systemctl --system daemon-reload
+
+- name: reload docker
+  command: /usr/bin/systemctl restart docker
+

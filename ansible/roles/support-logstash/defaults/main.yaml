@@ -1,0 +1,11 @@
+---
+# defaults file for support-logstash
+logstash_version: "2.2"
+logstash_install: true
+logstash_elasticsearch_host: "localhost:9200"
+logstash_base_dir: "/opt/logstash"
+logstash_cfg_dir: "/etc/logstash/conf.d"
+logstash_clean_cfg_dir: true
+logstash_apt_repo:
+    gpgkey: "http://packages.elastic.co/GPG-KEY-elasticsearch"
+    repo: "deb http://packages.elastic.co/logstash/2.2/debian stable main"

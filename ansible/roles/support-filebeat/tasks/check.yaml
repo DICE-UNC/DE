@@ -1,0 +1,17 @@
+---
+- debug: var=ansible_distribution
+  when: (ansible_distribution == "CentOS" and
+         ansible_distribution_major_version | version_compare('6', '<')) or
+        (ansible_distribution == "Ubuntu" and 
+         ansible_distribution_major_version | version_compare('14', '<'))
+- debug: var=ansible_distribution_major_version 
+  when: (ansible_distribution == "CentOS" and
+         ansible_distribution_major_version | version_compare('6', '<')) or
+        (ansible_distribution == "Ubuntu" and 
+         ansible_distribution_major_version | version_compare('14', '<'))
+- name: Verify OS
+  fail: msg="This role only supported on Ubuntu vivid or CentOS 7"
+  failed_when: (ansible_distribution == "CentOS" and
+                ansible_distribution_major_version | version_compare('6', '<')) or
+               (ansible_distribution == "Ubuntu" and 
+                ansible_distribution_major_version | version_compare('14', '<'))

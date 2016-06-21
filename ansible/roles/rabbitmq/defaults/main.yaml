@@ -1,0 +1,14 @@
+---
+install: false
+enable_ldap_with: null
+
+broker_port: 5432
+mgmt_port: 15432
+admin_user: {{ amqp.user }}
+admin_password: {{ amqp.password }}
+
+vhosts: []
+policies: []
+users: []
+exchanges: []
+queues: []

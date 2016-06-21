@@ -10,6 +10,7 @@ import org.iplantc.de.admin.desktop.client.toolAdmin.model.ToolProperties;
 import org.iplantc.de.admin.desktop.client.toolAdmin.service.ToolAdminServiceFacade;
 import org.iplantc.de.admin.desktop.client.toolAdmin.view.dialogs.DeleteToolDialog;
 import org.iplantc.de.admin.desktop.client.toolAdmin.view.dialogs.OverwriteToolDialog;
+import org.iplantc.de.admin.desktop.shared.Belphegor;
 import org.iplantc.de.client.models.errorHandling.ServiceErrorCode;
 import org.iplantc.de.client.models.errorHandling.SimpleServiceError;
 import org.iplantc.de.client.models.tool.Tool;
@@ -18,8 +19,8 @@ import org.iplantc.de.client.models.tool.ToolList;
 import org.iplantc.de.commons.client.ErrorHandler;
 import org.iplantc.de.commons.client.info.IplantAnnouncer;
 import org.iplantc.de.commons.client.info.SuccessAnnouncementConfig;
+import org.iplantc.de.shared.AsyncProviderWrapper;
 
-import com.google.gwt.inject.client.AsyncProvider;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.HasOneWidget;
 import com.google.inject.Inject;
@@ -46,8 +47,8 @@ public class ToolAdminPresenterImpl implements ToolAdminView.Presenter,
     private final ToolAdminView.ToolAdminViewAppearance appearance;
     private final ListStore<Tool> listStore;
     @Inject IplantAnnouncer announcer;
-    @Inject AsyncProvider<OverwriteToolDialog> overwriteAppDialog;
-    @Inject AsyncProvider<DeleteToolDialog> deleteAppDialog;
+    @Inject AsyncProviderWrapper<OverwriteToolDialog> overwriteAppDialog;
+    @Inject AsyncProviderWrapper<DeleteToolDialog> deleteAppDialog;
 
     @Inject
     public ToolAdminPresenterImpl(final ToolAdminViewFactory viewFactory,
@@ -71,6 +72,11 @@ public class ToolAdminPresenterImpl implements ToolAdminView.Presenter,
         container.setWidget(view);
         updateView();
 
+    }
+
+    @Override
+    public void setViewDebugId(String baseId) {
+        view.asWidget().ensureDebugId(baseId + Belphegor.ToolAdminIds.VIEW);
     }
 
     ListStore<Tool> createListStore(final ToolProperties toolProps) {

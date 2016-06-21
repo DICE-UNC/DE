@@ -124,18 +124,17 @@ public class PermanentIdRequestViewDefaultAppearance implements PermanentIdReque
     }
 
     @Override
-    public String updateStatus() {
-        return displayStrings.updateStatus();
-    }
-
-    @Override
-    public String update() {
-        return displayStrings.update();
-    }
-
-    @Override
     public String request() {
         return displayStrings.request();
     }
 
+    @Override
+    public String userEmail() {
+        return displayStrings.userEmail();
+    }
+
+    @Override
+    public String folderNotFound() {
+        return displayStrings.folderNotFound();
+    }
 }

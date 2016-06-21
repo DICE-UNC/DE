@@ -1,0 +1,22 @@
+---
+- name: Add Logstash repo key
+  when:
+  apt_key: "url={{filebeat_apt_repo.gpgkey}} state=present"
+  tags: 
+     - install
+
+- name: Add Beats repo
+  apt_repository: 
+      repo: "{{filebeat_apt_repo.repo}}"
+      state: present
+  tags: 
+     - install
+
+- name: Install filebeat
+  apt: 
+    name: "filebeat{% if filebeat_version is defined %}-{{filebeat_version}}{% endif %}"
+    update_cache: yes
+    state: present
+  tags: 
+     - install
+

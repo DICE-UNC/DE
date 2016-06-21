@@ -1,0 +1,7 @@
+rserve_user: rserve
+rserve_group: rserve
+rserve_source: http://mirrors.ibiblio.org/CRAN/src/contrib/Rserve_1.7-3.tar.gz
+rserve_targz: Rserve_1.7-3.tar.gz
+rserve_conf: Rserv.conf
+rserve_pwdfile: Rserv.pwd
+rserve_systemd: r.service

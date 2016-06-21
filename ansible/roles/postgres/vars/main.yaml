@@ -1,0 +1,6 @@
+---
+
+de_db_pgsql_major: 9.5
+de_db_pgsql_cli: 95
+de_db_pgsql_repo: https://download.postgresql.org/pub/repos/yum/9.5/redhat/rhel-7-x86_64/pgdg-centos95-9.5-2.noarch.rpm
+de_db_pgsql_rpm: postgresql95-server

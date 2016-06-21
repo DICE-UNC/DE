@@ -1,0 +1,19 @@
+galaxy_info:
+  author: Jonathan Strootman
+  description: 
+  company: CyVerse
+  license: BSD
+  
+  min_ansible_version: 2.0
+  platforms:
+  - name: EL
+    versions:
+    - 7
+  - name: Ubuntu
+    versions:
+    - trusty
+    - utopic
+    - vivid
+  galaxy_tags: []
+
+dependencies: []

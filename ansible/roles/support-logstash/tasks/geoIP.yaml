@@ -1,0 +1,21 @@
+# Install geoip database
+# TODO: Change this to its own role. Re-use.
+---
+- name: Download GeoLite City database
+  get_url: url=http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz dest=/tmp
+  register: download_geolite
+  tags:
+      - geoip
+
+- name: Ensure that GeoIP folder exists
+  file: path=/usr/share/GeoIP state=directory mode=0755
+  tags:
+      - geoip
+
+- name: Unpack GeoLite database
+  shell: "gunzip {{download_geolite.dest}} && mv /tmp/GeoLiteCity.dat /usr/share/GeoIP/"
+  args:
+    creates: /usr/share/GeoIP/GeoLiteCity.dat
+  tags:
+      - geoip
+

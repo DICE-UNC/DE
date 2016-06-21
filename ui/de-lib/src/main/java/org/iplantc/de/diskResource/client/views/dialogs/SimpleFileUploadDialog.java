@@ -249,16 +249,30 @@ public class SimpleFileUploadDialog extends IPlantDialog {
             statList.get(formList.indexOf(event.getSource())).clearStatus("");
         }
 
-        String results2 = event.getResults();
-        String results = Format.stripTags(results2);
-        Splittable split = StringQuoter.split(results);
         IPCFileUploadField field = fufList.get(formList.indexOf(event.getSource()));
-        if (split.isUndefined("file") || (split.get("file") == null)) {
-            field.markInvalid(appearance.fileUploadsFailed(Lists.newArrayList(field.getValue())));
-            IplantAnnouncer.getInstance().schedule(
-                    new ErrorAnnouncementConfig(appearance.fileUploadsFailed(Lists.newArrayList(field.getValue()))));
+        String results2 = event.getResults();
+        if (Strings.isNullOrEmpty(results2)) {
+            IplantAnnouncer.getInstance()
+                           .schedule(new ErrorAnnouncementConfig(appearance.fileUploadsFailed(Lists.newArrayList(
+                                   field.getValue()))));
         } else {
-            eventBus.fireEvent(new FileUploadedEvent(uploadDest, field.getValue(), results));
+            String results = Format.stripTags(results2);
+            Splittable split = StringQuoter.split(results);
+
+            if (split == null) {
+                IplantAnnouncer.getInstance()
+                               .schedule(new ErrorAnnouncementConfig(appearance.fileUploadsFailed(Lists.newArrayList(
+                                       field.getValue()))));
+            } else {
+                if (split.isUndefined("file") || (split.get("file") == null)) {
+                    field.markInvalid(appearance.fileUploadsFailed(Lists.newArrayList(field.getValue())));
+                    IplantAnnouncer.getInstance()
+                                   .schedule(new ErrorAnnouncementConfig(appearance.fileUploadsFailed(
+                                           Lists.newArrayList(field.getValue()))));
+                } else {
+                   eventBus.fireEvent(new FileUploadedEvent(uploadDest, field.getValue(), results));
+                }
+            }
         }
 
         if (submittedForms.size() == 0) {
@@ -335,7 +349,7 @@ public class SimpleFileUploadDialog extends IPlantDialog {
                     destResourceMap.get(id).markInvalid(appearance.fileExist());
                 }
             } else {
-                for (IPCFileUploadField field : destResourceMap.values()) {
+                for (final IPCFileUploadField field : destResourceMap.values()) {
                     int index = fufList.indexOf(field);
                     statList.get(index).setBusy("");
                     FormPanel form = formList.get(index);
@@ -343,10 +357,23 @@ public class SimpleFileUploadDialog extends IPlantDialog {
 
                         @Override
                         public void onSubmit(SubmitEvent event) {
+                            if (event.isCanceled()) {
+                                IplantAnnouncer.getInstance()
+                                               .schedule(new ErrorAnnouncementConfig(appearance.fileUploadsFailed(
+                                                       Lists.newArrayList(field.getValue()))));
+                            }
+
                             getOkButton().disable();
-                        }
+                       }
                     });
-                    form.submit();
+                    try {
+                        form.submit();
+                    } catch(Exception e ) {
+                        GWT.log("\nexception on submit\n" + e.getMessage());
+                        IplantAnnouncer.getInstance()
+                                       .schedule(new ErrorAnnouncementConfig(appearance.fileUploadsFailed(
+                                               Lists.newArrayList(field.getValue()))));
+                    }
                     submittedForms.add(form);
                 }
             }

@@ -1,0 +1,113 @@
+# Installs filebeat to all managed systems in inventory
+#
+---
+- hosts: services:ui:&systems
+  become: true
+  vars:
+      ssl_docker:
+          image: "{{docker.registry.base}}/{{data_container.image_name}}"
+          container: "{{data_container.container_name}}"
+          cert_path: "{{logstash.ssl.cert}}"
+  roles:
+      - role: infra-import-trusted-ca-cert
+
+- hosts: services:ui:&systems
+  become: true
+  vars:
+      filebeat_logstash_host: "{{groups['elasticsearch'][0]}}:{{logstash.port}}"
+      filebeat_index_pattern: "de-filebeat"
+      filebeat_config:
+         filebeat:
+           prospectors:
+             - paths:
+                  - "/var/log/de/anon-files-docker.log"
+               document_type: "anon-files-log"
+             - paths:
+                  - "/var/log/de/clockwork-docker.log"
+               document_type: "clockwork-log"
+             - paths:
+                  - "/var/log/de/condor-log-monitor-docker.log"
+               document_type: "condor-log-monitor-log"
+             - paths:
+                  - "/var/log/de/data-info-docker.log"
+               document_type: "data-info-log"
+             - paths:
+                  - "/var/log/de/nginx-de-ui.log"
+               document_type: "de-ui-nginx-log"
+             - paths:
+                  - "/var/log/de/de-ui.log"
+               document_type: "ui-log"
+             - paths:
+                  - "/var/log/de/dewey-docker.log"
+               document_type: "dewey-log"
+             - paths:
+                  - "/var/log/de/terrain-docker.log"
+               document_type: "terrain-log"
+             - paths:
+                  - "/var/log/de/exim-docker.log"
+               document_type: "exim-sender-log"
+             - paths:
+                  - "/var/log/de/infosquito-docker.log"
+               document_type: "infosquito-log"
+             - paths:
+                  - "/var/log/de/info-typer-docker.log"
+               document_type: "info-typer-log"
+             - paths:
+                  - "/var/log/de/iplant-email-docker.log"
+               document_type: "iplant-email-log"
+             - paths:
+                  - "/var/log/de/iplant-groups-docker.log"
+               document_type: "iplant-groups-log"
+             - paths:
+                  - "/var/log/de/jex/jex.log"
+               document_type: "jex-log"
+             - paths:
+                  - "/var/log/de/jex-events-docker.log"
+               document_type: "jexevents-log"
+             - paths:
+                  - "/var/log/de/kifshare-docker.log"
+               document_type: "kifshare-log"
+             - paths:
+                  - "/var/log/de/apps-docker.log"
+               document_type: "apps-log"
+             - paths:
+                  - "/var/log/de/metadata-docker.log"
+               document_type: "metadata-log"
+             - paths:
+                  - "/var/log/de/monkey-docker.log"
+               document_type: "monkey-log"
+             - paths:
+                  - "/var/log/de/notificationagent-docker.log"
+               document_type: "notificationagent-log"
+             - paths:
+                  - "/var/log/de/saved-searches-docker.log"
+               document_type: "saved-searches-log"
+             - paths:
+                  - "/var/log/de/tree-urls-docker.log"
+               document_type: "tree-urls-log"
+             - paths:
+                  - "/var/log/de/user-preferences-docker.log"
+               document_type: "user-preferences-log"
+             - paths:
+                  - "/var/log/de/user-sessions-docker.log"
+               document_type: "user-sessions-log"
+         output:
+          logstash:
+            hosts:
+              - "{{filebeat_logstash_host}}"
+            tls:
+              certificate_authorities: []
+            index: "{{filebeat_index_pattern}}"
+         shipper:
+           name: "{{ansible_hostname}}"
+           tags:
+               - "{{ inventory_file.split('/')[-1].split('.')[0] }}"
+         logging:
+           to_files: true
+           level: info
+           files:
+             path: /var/log/filebeat
+             name: filebeat
+             rotateeverybytes: 10485760 
+  roles:
+     - role: support-filebeat

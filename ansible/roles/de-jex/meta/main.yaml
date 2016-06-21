@@ -5,11 +5,12 @@ dependencies:
           - condor
           - condor-submitter
 
-    - role: util-cfg-systemd-unit
-      service_name_short: "{{jex.service_name_short}}"
-      tags:
-          - jex
-    - role: util-cfg-service
-      service_name_short: "{{jex.service_name_short}}"
-      tags:
-          - jex
+    # this errors out, just drop the template in instead.
+    #- role: util-cfg-systemd-unit
+    #  service_name_short: "{{jex.service_name_short}}"
+    #  tags:
+    #      - jex
+    #- role: util-cfg-service
+    #  service_name_short: "{{jex.service_name_short}}"
+    #  tags:
+    #      - jex

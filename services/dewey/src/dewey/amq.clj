@@ -25,24 +25,25 @@
 
 
 (defn- consume
-  [connection queue exchange-name exchange-durable exchange-auto-delete topics delivery-fn]
+  [connection queue exchange-name exchange-durable exchange-auto-delete qos topics delivery-fn]
   (let [channel  (lch/open connection)
         consumer (lc/create-default channel
-                   :handle-consume-ok-fn (fn [_] (log/info "Registered with AMQP broker"))
-                   :handle-delivery-fn   delivery-fn
-                   :handle-cancel-fn     (fn [_] (log/info "AMQP broker registration canceled")
-                                                 (Thread/sleep 1000)
-                                                 (consume connection
-                                                          queue
-                                                          exchange-name
-                                                          exchange-durable
-                                                          exchange-auto-delete
-                                                          topics
-                                                          delivery-fn)))]
-    (le/topic channel exchange-name :durable exchange-durable :auto-delete exchange-auto-delete)
-    (lq/declare channel queue :durable true)
-    (doseq [topic topics] (lq/bind channel queue exchange-name :routing-key topic))
-    (lb/consume channel queue consumer :auto-ack false)))
+                   {:handle-consume-ok-fn (fn [_] (log/info "Registered with AMQP broker"))
+                    :handle-delivery-fn   delivery-fn
+                    :handle-cancel-fn     (fn [_] (log/info "AMQP broker registration canceled")
+                                                  (Thread/sleep 1000)
+                                                  (consume connection
+                                                           queue
+                                                           exchange-name
+                                                           exchange-durable
+                                                           exchange-auto-delete
+                                                           topics
+                                                           delivery-fn))})]
+    (lb/qos channel qos)
+    (le/topic channel exchange-name {:durable exchange-durable :auto-delete exchange-auto-delete})
+    (lq/declare channel queue {:durable true :auto-delete false :exclusive false})
+    (doseq [topic topics] (lq/bind channel queue exchange-name {:routing-key topic}))
+    (lb/consume channel queue consumer {:auto-ack false})))
 
 
 (defn attach-to-exchange
@@ -59,13 +60,14 @@
      exchange-durable     - a flag indicating whether or not the exchange preserves messages
      exchange-auto-delete - a flag indicating whether or not the exchange is deleted when all queues
                             have been dettached
+     qos                  - a number of messages to allow to be sent to this client without acknowledgement
      consumer-fn          - the function that will receive the JSON document
      topics               - Optionally, a list of topics to listen for
 
    Throws:
      It will throw an exception if it fails to connect to the AMQP broker, setup the exchange, or
      setup the queue."
-  [host port user password queue-name exchange-name exchange-durable exchange-auto-delete consumer-fn & topics]
+  [host port user password queue-name exchange-name exchange-durable exchange-auto-delete qos consumer-fn & topics]
   (consume (rmq/connect {:host                  host
                          :port                  port
                          :username              user
@@ -75,5 +77,6 @@
            exchange-name
            exchange-durable
            exchange-auto-delete
+           qos
            (if (empty? topics) "#" topics)
            (mk-handler consumer-fn)))

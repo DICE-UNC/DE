@@ -1,0 +1,14 @@
+# THIS ANSIBLE PLAYBOOK FOR DEPLOYING AND INSTALLATION CAS AND LDAP
+# current - Mike Conway
+- hosts: cas
+  sudo: yes
+  sudo_user: root
+  roles:
+   - role: java7
+   - role: ldap
+  # - role: apache # install httpd
+   - role: tomcat # install tomcat and configure ajp
+     environment:
+       http_proxy: "{{ proxy_env.https_proxy }}"
+       https_proxy: "{{ proxy_env.https_proxy }}"
+   - role: cas

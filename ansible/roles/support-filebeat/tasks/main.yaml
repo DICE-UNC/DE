@@ -1,0 +1,29 @@
+---
+# tasks file for support-filebeat
+- include: check.yaml
+
+- when: filebeat_install
+  block:
+       - include: Ubuntu.yaml
+         when: ansible_distribution == 'Ubuntu'
+       - include: CentOS.yaml
+         when: ansible_distribution == "CentOS"
+       - name: Enable Filebeat at boot
+         service:
+             name: filebeat
+             enabled: yes
+         notify: restart filebeat
+         tags:
+             - install
+       
+- debug: var=filebeat_config             
+- name: Configure Filebeat
+  when: filebeat_config is defined
+  template:
+      src: "filebeat.yml.j2"
+      dest: "/etc/filebeat/filebeat.yml"
+  notify: restart filebeat
+  tags: 
+     - config
+
+

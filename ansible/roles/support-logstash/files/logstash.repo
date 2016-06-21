@@ -1,0 +1,7 @@
+[logstash-2.2]
+name=Logstash repository for 2.2.x packages
+baseurl=http://packages.elastic.co/logstash/2.2/centos
+gpgcheck=1
+gpgkey=http://packages.elastic.co/GPG-KEY-elasticsearch
+enabled=1
+

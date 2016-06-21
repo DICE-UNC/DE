@@ -1,0 +1,11 @@
+# THIS ANSIBLE PLAYBOOK FOR DEPLOYING AND INSTALLATION OF IRODS
+# original- Ahmed Abdullah <ahmedaabdulwahed@gmail.com>
+# current - Mike Conway
+- hosts: irods
+  sudo: yes
+  sudo_user: root
+  roles:
+  #- role: common
+  # irods requires postgres-9.3
+  #- role: postgres
+  - role: irods

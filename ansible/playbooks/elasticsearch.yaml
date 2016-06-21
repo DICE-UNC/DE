@@ -1,0 +1,7 @@
+---
+
+- hosts: elk
+  sudo: yes
+  roles:
+    - elk-data
+    - elk-elasticsearch

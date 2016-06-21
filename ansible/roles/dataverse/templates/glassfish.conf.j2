@@ -1,0 +1,20 @@
+# Job configuration info
+description "GlassFish4"
+
+# Instance per domain
+instance {{ dataverse.glassfish.domain }}
+
+# log to server.log
+console none
+
+# Run as glassfish service account
+setuid {{ dataverse.glassfish.user }}
+setgid {{ dataverse.glassfish.group }}
+umask 0022
+chdir {{ dataverse.glassfish.root }}
+
+# start
+exec {{ dataverse.glassfish.root }}/bin/asadmin start-domain {{ dataverse.glassfish.domain }}
+
+# stop
+pre-stop exec {{ dataverse.glassfish.root }}/bin/asadmin stop-domain {{ dataverse.glassfish.domain }}

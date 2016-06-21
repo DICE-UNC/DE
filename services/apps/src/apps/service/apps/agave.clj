@@ -17,6 +17,8 @@
 
 (def app-permission-rejection "Cannot list or modify the permissions of HPC apps with this service")
 
+(def analysis-permission-rejection "Cannot list or modify the permissions of HPC analyses with this service")
+
 (defn- reject-app-permission-request
   []
   (service/bad-request app-permission-rejection))
@@ -74,6 +76,10 @@
     (when-not (util/uuid? app-id)
       (.getAppToolListing agave app-id)))
 
+  (getAppInputIds [_ app-id]
+    (when-not (util/uuid? app-id)
+      (.getAppInputIds agave app-id)))
+
   (formatPipelineTasks [_ pipeline]
     (pipelines/format-pipeline-tasks agave pipeline))
 
@@ -81,10 +87,10 @@
     (job-listings/list-jobs self user params))
 
   (loadAppTables [_ app-ids]
-    (if (and (user-has-access-token?)
-             (some (complement util/uuid?) app-ids))
-      (listings/load-app-tables agave)
-      []))
+    (let [agave-app-ids (remove util/uuid? app-ids)]
+      (if (and (seq agave-app-ids) (user-has-access-token?))
+        (listings/load-app-tables agave agave-app-ids)
+        [])))
 
   (submitJob [this submission]
     (when-not (util/uuid? (:app_id submission))
@@ -167,4 +173,12 @@
     (when (and (user-has-access-token?)
                (not (util/uuid? app-id)))
       (let [category (.hpcAppGroup agave)]
-        (app-permissions/app-unsharing-failure app-names app-id category app-permission-rejection)))))
+        (app-permissions/app-unsharing-failure app-names app-id category app-permission-rejection))))
+
+  (hasAppPermission [_ username app-id required-level]
+    (when (and (user-has-access-token?)
+               (not (util/uuid? app-id)))
+      false))
+
+  (supportsJobSharing [_ _]
+    false))

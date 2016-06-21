@@ -3,12 +3,18 @@
         [slingshot.slingshot :only [try+]])
   (:require [clojure.tools.logging :as log]
             [clojure.string :as string]
+            [clojure-commons.error-codes :as ce]
+            [clojure-commons.exception-util :as cxu]
             [kameleon.db :as db]
+            [apps.clients.iplant-groups :as iplant-groups]
             [apps.clients.notifications :as cn]
             [apps.persistence.jobs :as jp]
             [apps.service.apps.job-listings :as listings]
             [apps.service.apps.jobs.params :as job-params]
+            [apps.service.apps.jobs.permissions :as job-permissions]
+            [apps.service.apps.jobs.sharing :as job-sharing]
             [apps.service.apps.jobs.submissions :as submissions]
+            [apps.service.apps.jobs.util :as ju]
             [apps.util.service :as service]))
 
 (defn supports-job-type
@@ -41,7 +47,7 @@
     (when-not (= prev-status curr-status)
       (cn/send-job-status-update
        (.getUser apps-client)
-       (listings/format-job (.loadAppTables apps-client [app-id]) job)))))
+       (listings/format-job apps-client (.loadAppTables apps-client [app-id]) job)))))
 
 (defn- determine-batch-status
   [{:keys [id]}]
@@ -107,51 +113,39 @@
     (sync-incomplete-job-status apps-client job step)
     (sync-complete-job-status job)))
 
-(defn- validate-job-existence
-  [job-ids]
-  (let [missing-ids (jp/list-non-existent-job-ids (set job-ids))]
-    (when-not (empty? missing-ids)
-      (service/not-found "jobs" job-ids))))
-
-(defn validate-job-ownership
-  [username job-ids]
-  (let [unowned-ids (map :id (jp/list-unowned-jobs username job-ids))]
-    (when-not (empty? unowned-ids)
-      (service/not-owner "jobs" (string/join ", " unowned-ids)))))
-
 (defn- validate-jobs-for-user
-  [username job-ids]
-  (validate-job-existence job-ids)
-  (validate-job-ownership username job-ids))
+  [user job-ids required-permission]
+  (ju/validate-job-existence job-ids)
+  (job-permissions/validate-job-permissions user required-permission job-ids))
 
 (defn update-job
-  [{:keys [username]} job-id body]
-  (validate-jobs-for-user username [job-id])
+  [user job-id body]
+  (validate-jobs-for-user user [job-id] "write")
   (jp/update-job job-id body)
   (->> (jp/get-job-by-id job-id)
        ((juxt :id :job-name :description))
        (zipmap [:id :name :description])))
 
 (defn delete-job
-  [{:keys [username]} job-id]
-  (validate-jobs-for-user username [job-id])
+  [user job-id]
+  (validate-jobs-for-user user [job-id] "write")
   (jp/delete-jobs [job-id]))
 
 (defn delete-jobs
-  [{:keys [username]} job-ids]
-  (validate-jobs-for-user username job-ids)
+  [user job-ids]
+  (validate-jobs-for-user user job-ids "write")
   (jp/delete-jobs job-ids))
 
 (defn get-parameter-values
-  [apps-client {:keys [username]} job-id]
-  (validate-jobs-for-user username [job-id])
+  [apps-client user job-id]
+  (validate-jobs-for-user user [job-id] "read")
   (let [job (jp/get-job-by-id job-id)]
     {:app_id     (:app-id job)
      :parameters (job-params/get-parameter-values apps-client job)}))
 
 (defn get-job-relaunch-info
-  [apps-client {:keys [username]} job-id]
-  (validate-jobs-for-user username [job-id])
+  [apps-client user job-id]
+  (validate-jobs-for-user user [job-id] "read")
   (job-params/get-job-relaunch-info apps-client (jp/get-job-by-id job-id)))
 
 (defn- stop-job-steps
@@ -162,8 +156,8 @@
   (send-job-status-update apps-client job))
 
 (defn stop-job
-  [apps-client {:keys [username] :as user} job-id]
-  (validate-jobs-for-user username [job-id])
+  [apps-client user job-id]
+  (validate-jobs-for-user user [job-id] "write")
   (let [{:keys [status] :as job} (jp/get-job-by-id job-id)]
     (when (listings/is-completed? status)
       (service/bad-request (str "job, " job-id ", is already completed or canceled")))
@@ -176,10 +170,25 @@
        (log/warn "unable to cancel the most recent step of job, " job-id)))))
 
 (defn list-job-steps
-  [{:keys [username]} job-id]
-  (validate-jobs-for-user username [job-id])
+  [user job-id]
+  (validate-jobs-for-user user [job-id] "read")
   (listings/list-job-steps job-id))
 
 (defn submit
   [apps-client user submission]
-  (transaction (submissions/submit apps-client user submission)))
+  (transaction
+   (let [job-info (submissions/submit apps-client user submission)]
+     (iplant-groups/register-analysis (:shortUsername user) (:id job-info))
+     job-info)))
+
+(defn list-job-permissions
+  [apps-client user job-ids]
+  (job-permissions/list-job-permissions apps-client user job-ids))
+
+(defn share-jobs
+  [apps-client user sharing-requests]
+  (job-sharing/share-jobs apps-client user sharing-requests))
+
+(defn unshare-jobs
+  [apps-client user unsharing-requests]
+  (job-sharing/unshare-jobs apps-client user unsharing-requests))

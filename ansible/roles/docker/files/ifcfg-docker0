@@ -1,0 +1,14 @@
+# creates default docker bridge name
+# with a non-routable range of IPS
+# that won't conflict with UNC VPN.
+# not setting iptables=false, so we
+# still want DE behind a hardware FW.
+
+TYPE=Bridge
+DEVICE=docker0
+NETMASK=255.255.255.0
+IPADDR=192.168.1.1
+ONBOOT=yes
+BOOTPROTO=none
+NM_CONTROLLED=no
+DELAY=0

@@ -1,0 +1,6 @@
+---
+ldap_cfg:
+  servers: "{{ enable_ldap_with.servers | default('[\"ldap\"]') }}"
+  user_dn_pattern: "{{ enable_ldap_with.user_dn_pattern | default('\"${username}\"') }}"
+  vhost_access_query: "{{ enable_ldap_with.vhost_access_query | default('{constant, true}') }}"
+  resource_access_query: "{{ enable_ldap_with.resource_access_query | default('{constant, true}') }}"

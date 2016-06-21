@@ -1,0 +1,159 @@
+---
+- when: install
+  block:
+    - name: install RabbitMQ Broker
+      package:
+        name: rabbitmq-server
+        state: latest
+
+    - name: enable RabbitMQ service
+      when: result|changed
+      service: 
+        name: rabbitmq-server
+        state: enabled
+ 
+    - name: enable RabbitMQ Management plugin
+      rabbitmq_plugin:
+        names: rabbitmq_management
+        new_only: yes 
+        state: enabled
+
+    - name: Setup RabbitMQ config
+      template:
+        src: rabbitmq.config.j2
+        dest: /etc/rabbitmq/rabbitmq.config
+        force: false
+      register: result
+
+    - name: reload RabbitMQ configuration
+      when: result|changed
+      service: 
+        name: rabbitmq-server
+        state: reloaded
+ 
+    - name: Create admin user for /
+      rabbitmq_user:
+        user: "{{ admin_user }}"
+        password: "{{ admin_password }}"
+        configure_priv: .*
+        write_priv: .*
+        read_priv: .*
+        tags: administrator
+
+    - name: Remove guest user
+      when: admin_user != 'guest'
+      rabbitmq_user:
+        user: guest
+        state: absent
+
+- when: enable_ldap_with
+  block:
+    - name: enable RabbitMQ LDAP plugin
+      rabbitmq_plugin:
+        names: rabbitmq_auth_backend_ldap
+        new_only: yes
+        state: enabled
+    - name: setup LDAP as primary auth
+      lineinfile:
+        dest: /etc/rabbitmq/rabbitmq.config
+        insertafter: "^  {rabbit, \\[$"
+        line: "    {auth_backends, [rabbit_auth_backend_ldap, rabbit_auth_backend_internal]},"
+      register: auth_result
+
+    - name: configure LDAP
+      blockinfile:
+        dest: /etc/rabbitmq/rabbitmq.config
+        insertbefore: "^  {rabbitmq_management, \\[$"
+        marker: "% {mark} BMS Configuration"
+        block: |2
+            {rabbitmq_auth_backend_ldap, [
+              {servers, {{ ldap_cfg.servers }}},
+              {user_dn_pattern, {{ ldap_cfg.user_dn_pattern }}},
+              {log, false},
+              {vhost_access_query, {{ ldap_cfg.vhost_access_query }}},
+              {resource_access_query,
+                {{ ldap_cfg.resource_access_query }}}
+            ]},
+      register: cfg_result
+
+    - name: reload RabbitMQ configuration
+      when: (auth_result | changed) or (cfg_result | changed)
+      service:
+        name: rabbitmq-server
+        state: reloaded
+
+- name: add vhosts
+  with_items: "{{ vhosts }}"
+  rabbitmq_vhost:
+    name: "{{ item }}"
+
+- name: add admin perms to vhosts
+  with_items: "{{ vhosts }}"
+  rabbitmq_user: 
+    user: "{{ admin_user }}"
+    password: "{{ admin_password }}"
+    vhost: "{{ item }}"
+    configure_priv: .*
+    write_priv: .*
+    read_priv: .*
+    tags: administrator
+
+# As of ansible 2.0, rabbitmq_policy doesn't modify a policy if it already exists. See 
+# https://github.com/ansible/ansible-modules-extras/issues/1566. For now, policies need to be 
+# removed before they are updated.
+- name: remove policies 
+  with_items: "{{ policies }}"
+  rabbitmq_policy:
+    name: "{{ item.name }}"
+    vhost: "{{ item.vhost | default('/') }}"
+    pattern:
+    tags: {}
+    state: absent
+
+- name: add policies
+  with_items: "{{ policies }}"
+  rabbitmq_policy:
+    name: "{{ item.name }}"
+    vhost: "{{ item.vhost | default('/') }}"
+    pattern: "{{ item.pattern }}"
+    tags: "{{ item.tags }}"
+    state: present
+
+- name: add users
+  with_items: "{{ users }}"
+  include: add_user.yaml user={{ item }}
+
+- name: add exchanges
+  with_items: "{{ exchanges }}"  
+  rabbitmq_exchange:
+    name: "{{ item.name }}"
+    login_port: "{{ mgmt_port }}"
+    login_user: "{{ admin_user }}"
+    login_password: "{{ admin_password }}"
+    vhost: "{{ item.vhost | default('/') }}"
+    auto_delete: false
+    exchange_type: "{{ item.type | default('direct') }}"
+
+- name: create queues
+  with_items: "{{ queues }}"
+  rabbitmq_queue:
+    name: "{{ item.name }}"
+    vhost: "{{ item.vhost | default('/') }}"
+    login_port: "{{ mgmt_port }}"
+    login_user: "{{ admin_user }}"
+    login_password: "{{ admin_password }}"
+    auto_delete: false
+    max_length: "{{ item.max_length | default(omit) }}"
+
+- name: bind queues
+  with_items: "{{ queues | selectattr('exchange', 'defined') | list | 
+            union(queues | selectattr('routing_key', 'defined') | list) }}"
+  rabbitmq_binding:
+    name: "{{ item.exchange | default('amq.default') }}"
+    vhost: "{{ item.vhost | default('/') }}"
+    login_port: "{{ mgmt_port }}"
+    login_user: "{{ admin_user }}"
+    login_password: "{{ admin_password }}"
+    destination: "{{ item.name }}"
+    destination_type: queue
+    routing_key: "{{ item.routing_key | default(omit) }}"

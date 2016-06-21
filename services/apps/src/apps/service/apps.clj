@@ -356,3 +356,15 @@
 (defn unshare-apps
   [user unsharing-requests]
   {:unsharing (.unshareApps (get-apps-client user) unsharing-requests)})
+
+(defn list-job-permissions
+  [user job-ids]
+  (jobs/list-job-permissions (get-apps-client user) user job-ids))
+
+(defn share-jobs
+  [user sharing-requests]
+  {:sharing (jobs/share-jobs (get-apps-client user) user sharing-requests)})
+
+(defn unshare-jobs
+  [user unsharing-requests]
+  {:unsharing (jobs/unshare-jobs (get-apps-client user) user unsharing-requests)})

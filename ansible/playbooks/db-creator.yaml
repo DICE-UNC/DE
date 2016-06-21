@@ -1,0 +1,6 @@
+- name: create de databases
+  hosts: db
+  sudo: yes
+  sudo_user: root
+  roles:
+    - role: db-creator

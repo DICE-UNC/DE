@@ -1,0 +1,30 @@
+#!/bin/bash
+# Generates responses for iRODS' iCAT setup_irods.sh script.
+
+RESPFILE=$1
+
+# some of these are set via defaults. should they all be group vars?
+
+# setup_irods.sh sometimes wants zone first, for whatever reason.
+echo "{{ irods_service_acct_user }}" > $RESPFILE  	# service account user ID
+echo "{{ irods_service_acct_user }}" >> $RESPFILE 	# service account group ID
+echo "{{ irods.zone }}" >> $RESPFILE            	# initial zone name
+echo "{{ irods.port }}" >> $RESPFILE            	# service port
+echo "{{ irods.portrange.start }}" >> $RESPFILE      	# transport starting port
+echo "{{ irods.portrange.end }}" >> $RESPFILE        	# transport ending port
+echo "{{ irods_vault_path }}" >> $RESPFILE 		# vault path
+echo "{{ irods_zone_key }}" >> $RESPFILE 		# zone SID
+echo "{{ irods_negotiation_key }}"  >> $RESPFILE 	# neg key
+echo "{{ irods_control_plane_port }}" >> $RESPFILE	# control plane port
+echo "{{ irods_control_plane_key }}" >> $RESPFILE     	# control plane key
+echo "{{ irods_schema_uri }}" >> $RESPFILE            	# schema validation URI
+echo "{{ irods.admin }}" >> $RESPFILE       		# iRODS admin account
+echo "{{ irods.admin_password }}" >> $RESPFILE      	# iRODS admin password
+echo "yes" >> $RESPFILE                   		# confirm iRODS settings
+#echo "{{ inventory_hostname }}" >> $RESPFILE   	# database hostname
+echo "{{ irods.icat.host }}" >> $RESPFILE    		# database hostname
+echo "{{ irods.icat.dbport }}" >> $RESPFILE             # database port
+echo "{{ irods.icat.db }}" >> $RESPFILE               	# database DB name
+echo "{{ irods.icat.user }}" >> $RESPFILE       	# database admin username
+echo "{{ irods.icat.password }}" >> $RESPFILE   	# database admin password
+echo "yes" >> $RESPFILE                   		# confirm database settings

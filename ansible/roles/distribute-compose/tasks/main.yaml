@@ -1,0 +1,9 @@
+---
+- name: delete compose if present
+  sudo: yes
+  file: path=/etc/compose.yaml state=absent
+
+- name: set the docker compose yaml file in etc
+  sudo: yes
+  template: src=compose.yaml.j2 dest=/etc/compose.yaml owner=root group=root mode=0644
+

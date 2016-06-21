@@ -1,0 +1,67 @@
+---
+
+- name: add the docker group
+  sudo: yes
+  group: name=docker state=present
+  tags: docker
+
+- name: add the docker user
+  sudo: yes
+  user: name=docker shell=/bin/bash groups=docker append=yes
+  tags: docker
+
+- name: add the current user to the docker group
+  sudo: yes
+  user: name={{ ansible_ssh_user }} groups=docker append=yes
+  tags: docker
+
+- name: copy docker.repo
+  copy: src=docker.repo dest=/etc/yum.repos.d owner=root group=root mode=0644 
+  tags: docker
+
+- name: RHEL-based systems will want brctl
+  yum: name=bridge-utils state=latest
+  tags: docker
+
+- name: place docker0 bridge file
+  copy: src=ifcfg-docker0 dest=/etc/sysconfig/network-scripts owner=root group=root mode=0644
+  tags: docker
+
+- name: ifup docker0
+  shell: "/usr/sbin/ifup ifcfg-docker0"
+  tags: docker
+
+- name: install docker-engine
+  yum: name=docker-engine state=latest
+  tags: docker
+
+- name: install/update docker-compose
+  sudo: yes
+  get_url: url=https://github.com/docker/compose/releases/download/1.7.0/docker-compose-Linux-x86_64 dest=/usr/bin/docker-compose mode=0755 owner=root group=root validate_certs=no force=yes
+  tags:
+      - install_docker-compose
+
+# needs more sugar.
+#- name: tell docker not to mess with iptables
+#  sudo: yes
+#  lineinfile: dest=/usr/lib/systemd/system/docker.service
+#    regexp='^ExecStart' insertafter='//' line='--iptables=false' state=present
+#  tags: docker
+
+- name: place the docker-compose yaml file
+  sudo: yes
+  template: src=compose.yaml.j2 dest=/etc/compose.yaml owner=root group=root mode=0644 force=yes
+  tags: docker-compose
+
+- name: reload systemd
+  sudo: yes
+  shell: "/usr/bin/systemctl daemon-reload"
+  tags: docker
+
+- name: enable and start docker-engine
+  service: name=docker state=restarted enabled=yes
+  tags: docker
+
+- include: login.yaml
+  when: ("{{docker.registry.login}}" is defined)
+  tags: docker

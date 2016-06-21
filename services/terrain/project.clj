@@ -7,7 +7,7 @@
       (string/trim (:out (sh "git" "rev-parse" "HEAD")))
       ""))
 
-(defproject org.iplantc/terrain "5.2.4.0-SNAPSHOT"
+(defproject org.iplantc/terrain "5.2.6.0-SNAPSHOT"
   :description "Framework for hosting DiscoveryEnvironment metadata services."
   :url "https://github.com/cyverse/DE"
   :license {:name "BSD Standard License"
@@ -31,19 +31,20 @@
                  [medley "0.7.0"]
                  [org.apache.tika/tika-core "1.11"]      ; provides org.apache.tika
                  [org.nexml.model/nexml "1.5-SNAPSHOT"]  ; provides org.nexml.model
-                 [org/forester "1.005" ]
+                 [org.biojava.thirdparty/forester "1.005" ]
                  [slingshot "0.12.2"]
-                 [org.iplantc/clj-cas "5.2.4.0"]
-                 [org.iplantc/clj-icat-direct "5.2.4.0"]
-                 [org.iplantc/clj-jargon "5.2.4.0"]
-                 [org.iplantc/clojure-commons "5.2.4.0"]
-                 [org.iplantc/common-cfg "5.2.4.0"]
-                 [org.iplantc/common-cli "5.2.4.0"]
-                 [org.iplantc/kameleon "5.2.4.0"]
-                 [org.iplantc/heuristomancer "5.2.4.0"]
-                 [org.iplantc/service-logging "5.2.4.0"]]
+                 [org.iplantc/clj-cas "5.2.6.0"]
+                 [org.iplantc/clj-icat-direct "5.2.6.0"]
+                 [org.iplantc/clj-jargon "5.2.6.0"]
+                 [org.iplantc/clojure-commons "5.2.6.0"]
+                 [org.iplantc/common-cfg "5.2.6.0"]
+                 [org.iplantc/common-cli "5.2.6.0"]
+                 [org.iplantc/kameleon "5.2.6.0"]
+                 [org.iplantc/heuristomancer "5.2.6.0"]
+                 [org.iplantc/service-logging "5.2.6.0"]]
   :plugins [[lein-ring "0.9.2" :exclusions [org.clojure/clojure]]
-            [swank-clojure "1.4.2" :exclusions [org.clojure/clojure]]]
+            [swank-clojure "1.4.2" :exclusions [org.clojure/clojure]]
+            [test2junit "1.1.3"]]
   :profiles {:dev     {:resource-paths ["conf/test"]}
              :uberjar {:aot :all}}
   :main ^:skip-aot terrain.core
@@ -54,6 +55,8 @@
   :uberjar-exclusions [#".*[.]SF" #"LICENSE" #"NOTICE"]
   :repositories [["biojava"
                   {:url "http://www.biojava.org/download/maven"}]
+                 ["sonatype-releases"
+                  {:url "https://oss.sonatype.org/content/repositories/releases/"}]
                  ["local"
                   {:url "https://everdene.iplantcollaborative.org/maven/repository"
                    :checksum :ignore}]]

@@ -154,7 +154,7 @@
   "Retrieves the list of app groups that are accessible to administrators. This includes all public
    app groups along with the trash group."
   [user params]
-  (let [params (assoc params :admin true)]
+  (let [params (assoc params :admin true :public true)]
     (conj (vec (get-app-groups user params))
           (format-trash-category nil nil params))))
 
@@ -216,7 +216,7 @@
   For the time being we'll deal with that by defaulting the permission level to the empty string,
   indicating that the user has no explicit permissions on the app."
   [app perms]
-  (assoc app :permission (or (perms/get-permission-level perms (:id app)) "")))
+  (assoc app :permission (or (iplant-groups/get-permission-level perms (:id app)) "")))
 
 (defn- format-app-listing
   "Formats certain app fields into types more suitable for the client."
@@ -441,3 +441,10 @@
   [{:keys [username]} app-id]
   (or (amp/get-category-id-for-app username app-id (workspace-favorites-app-category-index))
       shared-with-me-id))
+
+(defn get-app-input-ids
+  "Gets the list of parameter IDs corresponding to input files."
+  [app-id]
+  (->> (amp/get-app-parameters app-id)
+       (filter (comp amp/param-ds-input-types :type))
+       (mapv #(str (:step_id %) "_" (:id %)))))

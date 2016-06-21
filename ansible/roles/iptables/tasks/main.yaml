@@ -1,0 +1,31 @@
+---
+
+- name: stop firewalld, if running
+  service: name=firewalld state=stopped
+  ignore_errors: true
+  when: ansible_os_family == "RedHat" and
+        ansible_distribution_major_version == "7"
+
+- name: mask firewalld service
+  sudo: yes
+  shell: systemctl mask firewalld
+  when: ansible_os_family == "RedHat" and
+        ansible_distribution_major_version == "7"
+
+- name: install iptables-services
+  yum: name=iptables-services state=latest
+  when: ansible_os_family == "RedHat" and
+        ansible_distribution_major_version == "7"
+
+- name: insert iptables template
+  template: src=iptables.j2 dest=/etc/sysconfig/iptables
+
+- name: and its init script for old-schoolers
+  copy: src=iptables dest=/etc/init.d/iptables owner=root group=root mode=0755
+
+- name: restart iptables, enable at boot
+  service: name=iptables state=restarted enabled=yes
+
+- name: restart docker on docker-ready hosts
+  service: name=docker state=restarted
+  when: ('docker-ready' in group_names)

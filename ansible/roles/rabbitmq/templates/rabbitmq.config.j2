@@ -1,0 +1,9 @@
+[
+  {rabbit, [
+    {tcp_listeners, [{{ broker_port }}]}
+  ]},
+
+  {rabbitmq_management, [
+    {listener, [{port, {{ mgmt_port }}}]}
+  ]}
+].

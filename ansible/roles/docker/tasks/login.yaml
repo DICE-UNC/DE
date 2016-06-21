@@ -1,0 +1,10 @@
+- name: ensure docker-python installed for ansible module
+  yum: name=docker-python state=latest
+  tags: docker
+
+- name: login to private Docker remote registry
+  docker_login:
+    registry: "{{ docker.registry.base }}"
+    username: "{{ docker.registry.user }}"
+    password: "{{ docker.registry.pass }}"
+  tags: docker

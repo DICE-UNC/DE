@@ -3,10 +3,12 @@ package org.iplantc.de.admin.desktop.client.permIdRequest.views;
 import org.iplantc.de.client.models.IsMaskable;
 import org.iplantc.de.client.models.diskResources.Folder;
 import org.iplantc.de.client.models.identifiers.PermanentIdRequest;
+import org.iplantc.de.client.models.identifiers.PermanentIdRequestDetails;
 import org.iplantc.de.client.models.identifiers.PermanentIdRequestUpdate;
 import org.iplantc.de.client.services.DiskResourceServiceFacade;
 
 import com.google.gwt.resources.client.ImageResource;
+import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.HasOneWidget;
 import com.google.gwt.user.client.ui.IsWidget;
 
@@ -70,11 +72,11 @@ public interface PermanentIdRequestView extends IsWidget, IsMaskable {
 
         String commentsLbl();
 
-        String updateStatus();
-
-        String update();
-
         String request();
+
+        String userEmail();
+
+        String folderNotFound();
     }
 
     public interface Presenter {
@@ -89,15 +91,23 @@ public interface PermanentIdRequestView extends IsWidget, IsMaskable {
 
         void setSelectedRequest(PermanentIdRequest request);
 
-        void updateRequest(PermanentIdRequestUpdate update);
+        void doUpdateRequest(PermanentIdRequestUpdate update);
+
+        void onUpdateRequest();
 
         void createPermanentId();
+
+        void getRequestDetails(AsyncCallback<PermanentIdRequestDetails> callback);
+
+        void setViewDebugId(String baseId);
     }
 
     public interface PermanentIdRequestPresenterAppearance {
         String createPermIdSucess();
 
         String createPermIdFailure();
+
+        String folderNotFound(String path);
 
         String metadataSaveError();
 
@@ -106,6 +116,10 @@ public interface PermanentIdRequestView extends IsWidget, IsMaskable {
         String statusUpdateFailure();
 
         String statusUpdateSuccess();
+
+        String updateStatus();
+
+        String update();
     }
 
 }

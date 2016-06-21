@@ -24,6 +24,6 @@
     config_template: "roles/util-cfg-service/templates/{{ svce }}.properties.j2"
     config_name: "{{ svce }}.properties"
   tasks:
-  - debug: msg="writing {{ config_template }} to {{ de_config_dir }}/{{ config_name }}"
+  - debug: msg="writing {{ config_template }} to {{ local_cfg_dest }}/{{ config_name }}"
   - name: write local service configs
-    local_action: template src="{{ config_template }}" dest="{{ de_config_dir }}/{{ config_name }}" mode=0644
+    local_action: template src="{{config_template}}" dest="{{local_cfg_dest}}/iplant/de/{{config_name}}" mode=0644

@@ -1,0 +1,50 @@
+---
+
+# drop in DE rulesets
+
+- name: copy DE rulesets into place
+  sudo: yes
+  sudo_user: irods
+  copy: src={{item}} dest=/etc/irods/ owner=irods group=irods mode=0644
+  with_items:
+    - core.re
+    - ipc-amqp.re
+    - ipc-custom.re
+    - ipc-env.re
+    - ipc-json.re
+    - ipc-logic.re
+    - ipc-uuid.re
+
+- name: copy DE scripts into iRODS bin/ directory
+  sudo: yes
+  sudo_user: irods
+  copy: src={{item}} dest=/var/lib/irods/iRODS/server/bin/cmd/ owner=irods group=irods mode=0755
+  with_items:
+    - amqpsend.py
+    - amqptopicsend.py
+    - generateuuid.sh
+
+- name: place libmsiSetAVU.so plugin 
+  sudo: yes
+  sudo_user: irods
+  copy: src=libmsiSetAVU.so dest=/var/lib/irods/plugins/microservices/ owner=irods group=irods mode=0644
+
+# ignore_errors in case user is like don and picks 'rodsadmin' as an admin name
+- name: create DE/services irods user
+  sudo: yes
+  sudo_user: irods
+  shell: "iadmin mkuser {{ irods_user }}#{{ irods_zone }} rodsadmin"
+  ignore_errors: true
+
+- name: if DE/services user already exists, ensure it's an admin
+  sudo: yes
+  sudo_user: irods
+  shell: "iadmin moduser {{ irods_user }}#{{ irods_zone }} type rodsadmin"
+
+- name: set DE/services user password
+  sudo: yes
+  sudo_user: irods
+  shell: "iadmin moduser {{ irods_user }}#{{ irods_zone }} password {{ irods_password }}"
+
+- name: echo ruleset warning
+  debug: msg="Custom DE iRODS rulebases installed, including core.re. Please activate rules as needed by adding them to /etc/irods/server_config.json beneath re_rulebase_set and restarting iRODS."

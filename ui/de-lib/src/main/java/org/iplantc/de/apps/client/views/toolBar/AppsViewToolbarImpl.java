@@ -23,13 +23,13 @@ import org.iplantc.de.client.models.UserInfo;
 import org.iplantc.de.client.models.apps.App;
 import org.iplantc.de.client.models.diskResources.PermissionValue;
 import org.iplantc.de.commons.client.ErrorHandler;
+import org.iplantc.de.shared.AsyncProviderWrapper;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.logical.shared.SelectionEvent;
 import com.google.gwt.event.shared.HandlerRegistration;
-import com.google.gwt.inject.client.AsyncProvider;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiFactory;
 import com.google.gwt.uibinder.client.UiField;
@@ -65,8 +65,11 @@ public class AppsViewToolbarImpl extends Composite implements AppsToolbarView {
     interface AppsViewToolbarUiBinder extends UiBinder<Widget, AppsViewToolbarImpl> {
     }
 
+
     @UiField
     Menu sharingMenu;
+    @UiField
+    TextButton shareMenuButton;
     @UiField
     MenuItem appRun;
     @UiField
@@ -95,8 +98,7 @@ public class AppsViewToolbarImpl extends Composite implements AppsToolbarView {
     MenuItem requestTool;
     @UiField
     MenuItem shareCollab, sharePublic;
-    @Inject
-    AsyncProvider<SubmitAppForPublicDialog> submitAppDialogAsyncProvider;
+    @Inject AsyncProviderWrapper<SubmitAppForPublicDialog> submitAppDialogAsyncProvider;
     @UiField
     MenuItem wfRun;
     @UiField
@@ -278,7 +280,7 @@ public class AppsViewToolbarImpl extends Composite implements AppsToolbarView {
                 shareWithCollaboratorsMiEnabled = containsSharableApps(currentSelection);
         }
 
-        sharingMenu.setEnabled(submitAppEnabled || shareWithCollaboratorsMiEnabled);
+        shareMenuButton.setEnabled(submitAppEnabled || shareWithCollaboratorsMiEnabled);
         deleteApp.setEnabled(deleteAppEnabled);
         editApp.setEnabled(editAppEnabled);
         sharePublic.setEnabled(submitAppEnabled);
@@ -325,9 +327,10 @@ public class AppsViewToolbarImpl extends Composite implements AppsToolbarView {
         copyApp.ensureDebugId(baseID + Ids.MENU_ITEM_APPS + Ids.MENU_ITEM_COPY_APP);
         editApp.ensureDebugId(baseID + Ids.MENU_ITEM_APPS + Ids.MENU_ITEM_EDIT_APP);
         deleteApp.ensureDebugId(baseID + Ids.MENU_ITEM_APPS + Ids.MENU_ITEM_DELETE_APP);
-        sharingMenu.ensureDebugId(baseID + Ids.MENU_ITEM_APPS + Ids.MENU_ITEM_SHARE_APP);
-        sharePublic.ensureDebugId(baseID + Ids.MENU_ITEM_APPS + Ids.MENU_ITEM_SHARE_APP_PUBLIC);
-        shareCollab.ensureDebugId(baseID + Ids.MENU_ITEM_APPS + Ids.MENU_ITEM_SHARE_APP_COLLAB);
+
+        shareMenuButton.ensureDebugId(baseID + Ids.MENU_ITEM_SHARE_APP);
+        sharePublic.ensureDebugId(baseID + Ids.MENU_ITEM_SHARE_APP + Ids.MENU_ITEM_SHARE_APP_PUBLIC);
+        shareCollab.ensureDebugId(baseID + Ids.MENU_ITEM_SHARE_APP + Ids.MENU_ITEM_SHARE_APP_COLLAB);
 
         wf_menu.ensureDebugId(baseID + Ids.MENU_ITEM_WF);
         wfRun.ensureDebugId(baseID + Ids.MENU_ITEM_WF + Ids.MENU_ITEM_USE_WF);

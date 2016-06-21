@@ -1,0 +1,11 @@
+tomcat_user: tomcat
+cas.port: 8080
+ldap.port: 389
+ldap_use_starttls: false
+ldap.search_base_dn:  ou=Users,DC=dfc,DC=org
+ldap.manager_dn: cn=admin,DC=dfc,DC=org
+ldap.admin_password: password
+do_ssl_config: false
+cas.context_path: cas
+cas.git_url: https://github.com/github/cas-overlay.git
+cas.git_project_name: cas-overlay

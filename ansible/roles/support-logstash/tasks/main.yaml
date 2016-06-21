@@ -1,0 +1,56 @@
+---
+# tasks file for support-logstash
+- include: check.yaml
+
+- when: logstash_install
+  block:
+       - include: Ubuntu.yaml
+         when: ansible_distribution == 'Ubuntu'
+       - include: CentOS.yaml
+         when: ansible_distribution == "CentOS"
+       - include: geoIP.yaml
+
+- name: Install logstash plugins      
+  when: logstash_plugins is defined
+  command: "{{logstash_base_dir}}/bin/plugin install {{ item.plugin }}{% if item.version is defined and item.version != '' %}/{{ item.version }}{% endif %}"
+  register: plugin_installed
+  failed_when: "'Failed to install' in plugin_installed.stderr"
+  changed_when: plugin_installed.rc == 0
+  with_items: logstash_plugins | default([])
+  tags: 
+      - plugins
+  notify:
+      - restart logstash
+
+- when: logstash_clean_cfg_dir
+  block:
+      - name: Clean configuration directory
+        file: 
+          path: "{{ logstash_cfg_dir }}"
+          state: absent
+      - name: Create configuration directory
+        file: 
+          path: "{{ logstash_cfg_dir }}"
+          state: directory
+          owner: logstash
+          group: logstash
+          mode: 0700
+
+- name: Add configuration files
+  when: logstash_cfg_file_glob is defined
+  copy: src={{ item }} dest={{ logstash_cfg_dir }} owner=logstash group=logstash mode=0600
+  with_fileglob: logstash_cfg_file_glob | default("")
+  tags:
+      - config
+  notify:
+      - restart logstash
+  
+- name: Add configuration template files
+  when: logstash_cfg_template_glob is defined
+  template: src={{ item }} dest={{ logstash_cfg_dir }} owner=logstash group=logstash mode=0600
+  with_fileglob: logstash_cfg_template_glob | default("")
+  tags:
+      - config
+  notify:
+      - restart logstash
+

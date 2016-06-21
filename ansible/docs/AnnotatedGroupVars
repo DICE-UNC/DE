@@ -1,0 +1,1009 @@
+# Annotated group_var reference for Discovery Environment.
+# Required but sanitized variables are valued CHANGEME.
+# Note that in general variable names are converting
+# from long_strings to service.stanzas.
+
+# We run our playbooks with sudo (-s -K) and so need to specify a user here.
+ansible_ssh_user: CHANGEME
+
+# Master iPlant config locations
+# Note: The webapp currently requires that the de.properties file be located in /etc/iplantc/de/.
+global_config_dir: /etc/iplant
+de_config_dir: "{{ global_config_dir }}/de"
+# This is required by generate-local-configs.yaml.
+local_cfg_dest: CHANGEME
+
+java:
+  version: 1.7.0
+
+# Indicates whether or not this environment is a complete environment
+# or piggybacks off some other environment
+parasitic: false
+
+max_heap:
+  low: "512M"
+  high: "1G"
+
+################################################################################
+#                         Configuration Settings
+################################################################################
+
+# LDAP groups allowed to sign in to the admin interface
+admin_groups: admin_group1,admin_group2
+
+# internal listening port for dockerized services
+default_service_port: 60000
+
+# Non-iPlant organizations will need to obtain client keys to use Agave.
+# Even if you're not connected, you can still use the public bits.
+# Agave may be disabled entirely by switching flags in the apps.properties template.
+agave:
+  base_url: https://agave.iplantc.org
+  read_timeout: 10000
+  page_length: 5000
+  oauth_refresh_window: 5
+  client_key: CHANGEME
+  client_secret: CHANGEME
+
+# AMQP for event notifications
+amqp_broker:
+  host: "{{ groups['amqp-brokers'][0] }}"
+  port: 5672
+  mgmt_port: 15672
+  password: CHANGEME
+  user: CHANGEME
+  condor_events:
+    exchange: condor_events
+    exchange_type: fanout
+    exchange_durable: true
+    exchange_routing_key: CHANGEME
+    queue_name: CHANGEME
+    exchange_auto_delete: false
+  de:
+    exchange: de
+    exchange_durable: true
+    exchange_auto_delete: false
+  irods:
+    connection_health_check_interval: 5000
+    exchange: irods
+    exchange_type: topic
+    exchange_durable: true
+    exchange_auto_delete: false
+    message_auto_ack: true
+    queue_routing_key: "data-object.#"
+
+# anon_files serves up files that have been shared with the anonymous user in iRODS.
+anon_files:
+  host: "{{ groups['anon-files'][0] }}"
+  # iplant docs recommend against changing this
+  port: 60000
+  base: "http://{{ groups['anon-files'][0] }}:60000"
+  base_url: "http://{{ services_host }}:{{ anon_files_port }}/anon-files/"
+  proxy_url: "https://{{ groups['ui'][0] }}/anon-files/"
+  anon_user: anonymous
+  service_name: anon-files.service
+  service_name_short: anon-files
+  service_description: anon-files service
+  compose_service: anon_files
+  image_name: anon-files
+  log_driver: "{{ docker.log_driver }}"
+  log_file: anon-files.log
+  container_name: anon-files
+  properties_file: anon-files.properties
+  log_file: anon-files-docker.log
+  max_heap: "{{ max_heap.low }}"
+
+compose:
+  # don't change this - hard-coded in admin(?) interface
+  de_env: de
+  de_tag: latest
+
+## App Settings
+de:
+  host: "{{ groups['ui'][0] }}"
+  base: "https://{{ groups['ui'][0] }}/de"
+  app_base: "https://{{ groups['ui'][0] }}"
+  service_name: de-ui.service
+  service_name_short: ui
+  service_description: DE UI; iPlant Discovery Environment user interface
+  image_name: de-ui
+  compose_service: de_ui
+  container_name: de-ui
+  log_driver: "{{ docker.log_driver }}"
+  log_file: de-ui.log
+  context_menu_enabled: false
+  description: the CyVerse Discovery Environment
+  empty_url: empty
+  app_name: de
+  rpc_name: discoveryenvironment
+  notification_poll: 15
+  maintenance_file: de-maintenance
+  http_server:
+    service_name: de-ui-nginx.service
+    service_name_short: de-ui-nginx
+    service_description: DE UI nginx
+    image_name: nginx-ssl
+    container_name: de_ui_nginx
+    compose_service: de_ui_nginx
+    log_driver: "{{ docker.log_driver }}"
+    log_file: nginx-de-ui.log
+    ssl:
+      server_name: "{{ nginx_ssl.server_name }}"
+      cert: "{{ nginx_ssl.cert }}"
+      cert_key: "{{ nginx_ssl.cert_key }}"
+      insecure_redirects:
+        - server_name: "{{ nginx_ssl.server_name }}"
+          return: "https://$host$request_uri"
+      tomcat_ks_cert: CHANGEME
+      tomcat_ks_chain: CHANGEME
+      tomcat_ks_pass: CHANGEME
+#      redirects:
+#        - server_name: "~^(?<basename>[^.]+)[.]example[.]com$"
+#          return: "https://$basename.example.org$request_uri"
+#          ssl_certificate: "/etc/ssl/example.com.crt"
+#          ssl_certificate_key: "/etc/ssl/example.com.key"
+
+# populates the "About" dialog, shouldn't affect functionality
+app_version_name: Phthalo
+app_version: 2.4.0
+
+# The Apps service populates the GUI Apps window.
+apps:
+  host: "{{ groups['apps'][0] }}"
+  port: 5014
+  # ansible got mad about nested variables, so hard-coding port below.
+  base: "http://{{ groups['apps'][0] }}:5014"
+  service_name: apps.service
+  service_name_short: apps
+  compose_service: apps
+  service_description: apps service
+  image_name: apps
+  container_name: apps
+  properties_file: apps.properties
+  log_file: apps-docker.log
+  out_dir: analyses
+  path_list_max_paths: 16
+  path_list_max_size: 1048576
+  beta_category: 5401bd14-6c14-4470-aedd-57b47ea1b979
+  user_root: Workspace
+  user_subs: "[\"Apps under development\",\"Favorite Apps\"]"
+  trash_category: Trash
+  max_heap: "{{ max_heap.high }}"
+
+app_server_base_url: https://{{ app_server_hostname }}
+app_server_hostname: "{{ groups['ui'][0] }}"
+
+de_feedback_to_addr: "CHANGEME"
+de_mail_from_addr: "{{ de_feedback_to_addr }}"
+de_mail_to_addr: "{{ de_feedback_to_addr }}"
+
+#de_maintenance_file: de-maintenance
+
+de_notification_poll: 15
+
+# Docker registry settings. You'll want your own docker registry
+# to host private data containers.
+docker:
+  # eth0 setting used by iptables role for docker port forwarding.
+  eth0: eno16777984
+  log_driver: syslog
+  tag: latest
+  user: discoenv
+  version: 1.11.0
+  compose_path: /etc/compose.yaml
+  registry:
+    host: "{{ groups['docker-registry'][0] }}"
+    port: 443
+    base: "CHANGEME"
+    user: CHANGEME
+    pass: CHANGEME
+    login: yes
+  internal_registry: "CHANGEME"
+
+# drop_number is used by iPlant for QA. others may safely ignore it.
+drop_number: 0
+
+# --- CAS properties --- #
+cas:
+  app_list: all iPlant applications
+  base: https://"{{ groups['cas'][0] }}:{{ cas.port }}"/cas
+  context_path: cas
+  do_ssl_config: true
+  # including DICE-UNC's CAS overlay for reference. YMMV.
+  git_url: https://github.com/DICE-UNC/cas-overlay.git
+  git_project_name: cas-overlay
+  group_attribute: entitlement
+  no_logout_url: http://"{{ groups['ui'][0] }}"
+  port: CHANGEME
+  ssl_cert_file: CHANGEME
+  ssl_certificate_local_dir: /etc/pki/tls/certs
+  ssl_certificate_server_dir: /usr/share/tomcat/cert
+  ssl_key_file: CHANGEME
+  tomcat:
+    admin_username: admin
+    admin_password: CHANGEME
+    http_port: 8080
+    https_port: 8443
+    user: tomcat
+    group: tomcat
+  uid_domain: CHANGEME
+
+###############################################################################
+# CAS Authentication Settings
+###############################################################################
+org.iplantc.discoveryenvironment.cas.base-url: "{{ cas.base }}"
+org.iplantc.discoveryenvironment.cas.server-name: "https://{{ cas.host}}:{{ cas.port }}"
+org.iplantc.discoveryenvironment.cas.validation: /iplant-cas-ticket-validator
+org.iplantc.discoveryenvironment.cas.logout-url: /iplant-cas-logout
+org.iplantc.discoveryenvironment.cas.app-name: DFC Test Lab Discovery Environment
+org.iplantc.discoveryenvironment.cas.login-url: /login
+org.iplantc.admin.cas.authorized-groups: "{{ admin_groups }}"
+org.iplantc.admin.cas.group-attribute-name: entitlement
+org.iplantc.discoveryenvironment.cas.no-logout-url: "https://{{ cas.base }}"
+org.iplantc.discoveryenvironment.cas.app-list: all iPlant applications
+
+###############################################################################
+# CAS Session Keepalive Settings
+###############################################################################
+org.iplantc.discoveryenvironment.keepalive.service: "https://{{ cas.host }}:{{ cas.port }}/de/discoveryenvironment/empty"
+org.iplantc.discoveryenvironment.keepalive.target: "https://{{ cas.host }}:{{ cas.port }}/cas/login?service=https://{{ nginx_ssl.server_name }}/de/discoveryenvironment/empty"
+org.iplantc.discoveryenvironment.keepalive.interval: 90
+
+chat_room_url: CHANGEME
+
+# Condor handles all DE job execution; Jex performs its care and feeding.
+condor_submission_ip_range: CHANGEME
+condor_allow_write: "{{ condor_submission_ip_range }}"
+condor:
+  host: "{{ groups['condor-submission'][0] }}"
+  admin: CHANGEME
+  collector_name: "{{ environment_name }} pool"
+  cred_dir: /var/cred_dir
+  flock_to: CHANGEME
+  filesystem_domain: "{{ ansible_fqdn }}"
+  rhel7_repo: htcondor-stable-rhel7.repo
+  uid_domain: CHANGEME
+  allow_write: "{{ condor_allow_write }}"
+  allow_read: "{{ condor_allow_write }}"
+
+# Condor Log Monitor does exactly that, and reports to jexevents.
+condor_log_monitor_event_log: /var/log/condor/event_log
+condor_log_monitor:
+  service_name: condor-log-monitor.service
+  service_name_short: condor-log-monitor
+  service_description: CLM; Condor log monitor
+  image_name: condor-log-monitor
+  container_name: clm
+  compose_service: clm
+  properties_file: condor_log_monitor.properties
+  log_file: condor-log-monitor-docker.log
+
+# Coge is unavailable to external entities.
+coge_genome_load_url: https://genomevolution.org/CoGe/services/service.pl/genome/load
+coge_base_url: https://genomevolution.org/coge/api/v1
+coge_data_folder_name: coge_data
+coge_user: coge
+
+coge:
+  user: coge
+  base_url: https://genomevolution.org/coge/api/v1
+  data_folder_name: coge_data
+
+# The clockwork service is no longer used.
+clockwork:
+  service_name: clockwork.service
+  service_name_short: clockwork
+  service_description: clockwork service
+  image_name: clockwork
+  container_name: clockwork
+  compose_service: clockwork
+  properties_file: clockwork.properties
+  log_file: clockwork-docker.log
+  max_heap: "{{ max_heap.low }}"
+
+# data-info is a RESTful frontend for getting information about
+# and manipulating information in an iRODS data store.
+data_info_host: "{{ services_host }}"
+data_info:
+  host: "{{ groups['data-info'][0] }}"
+  port: 5001
+  service_name: data-info.service
+  service_name_short: data-info
+  service_description: data-info service
+  compose_service: data_info
+  image_name: data-info
+  container_name: data-info
+  properties_file: data-info.properties
+  log_file: data-info-docker.log
+  max_heap: "{{ max_heap.high }}"
+
+# Optional role to stand up the IQSS data publishing platform.
+dataverse:
+  adminpass: CHANGEME
+  db: dvndb
+  dbhost: localhost
+  dbuser: dvnuser
+  dbpass: CHANGEME
+  dbport: 5432
+  filesdir: /usr/local/dvn/data
+  glassfish:
+    user: glassfish
+    group: glassfish
+    root: /usr/local/glassfish4
+    domain: domain1
+    adminuser: admin
+    adminpass: CHANGEME
+  host_address: "{{ groups['dataverse'][0] }}"
+  memheap: 16389
+  shib: true
+  smtp: localhost
+  version: 4.2.4
+
+de_version: "{{ app_version }}"
+de_version_name: "{{ app_version_name }}"
+
+db_driver: org.postgresql.Driver
+db_user: CHANGEME
+db_password: CHANGEME
+db_host: "{{ groups['db'][0] }}"
+db_name: CHANGEME
+db_port: 5432
+db_admin: postgres
+db_admin_password: CHANGEME
+db_targz: https://everdene.iplantcollaborative.org/jenkins/job/databases-dev/lastSuccessfulBuild/artifact/databases/de-database-schema/database.tar.gz
+
+db_vendor: postgresql
+db_allowed_IPv4_remote: CHANGEME
+
+# Incremental iRODS indexer.
+dewey:
+  service_name: dewey.service
+  service_name_short: dewey
+  listen_port: 5002
+  compose_service: dewey
+  service_description: dewey service
+  image_name: dewey
+  container_name: dewey
+  properties_file: dewey.properties
+  log_file: dewey-docker.log
+  max_heap: "{{ max_heap.low }}"
+
+email_smtp_host: CHANGEME
+email_smtp_from_address: CHANGEME
+email_host: CHANGEME
+email_base: http://{{ email_host }}:{{ iplant_email.port }}
+
+# don't change this - some things are still hard-coded.
+environment_name: de
+
+# for ansible-elasticsearch role https://github.com/cyverse/ansible-elasticsearch
+elasticsearch_user: elasticsearch
+elasticsearch_group: elasticsearch
+elasticsearch_heap_size: 2g
+elasticsearch_cluster_name: CHANGEME
+
+elasticsearch_network_http_port: 9200
+elasticsearch:
+  host: "{{ groups['elasticsearch'][0] }}"
+  port: 9200
+  base: "http://{{ groups['elasticsearch'][0] }}:9200"
+  scroll_size: 1000
+  cluster_name: elasticsearch
+  heap_size:
+  network_http_port:
+  network_transport_tcp_port:
+
+elk_host: "{{ groups['elk'][0] }}"
+elk:
+  conf_dir: "{{de_config_dir}}/elk"
+  logstash:
+    port: 5000
+    container_name: elk_logstash
+    service_name: elk-logstash.service
+    service_name_short: elk-logstash
+    service_description: ELK logstash
+    image_name: de-logstash
+  data:
+    container_name: elk_data
+    service_name: elk-data.service
+    service_name_short: elk-data
+    service_description: ELK data container
+    image_name: busybox
+  elasticsearch:
+    port: 9200
+    container_name: elk_elasticsearch
+    service_name: elk-elasticsearch.service
+    service_name_short: elk-elasticsearch
+    service_description: ELK elasticsearch
+    image_name: elasticsearch
+    heap_size: "12g"
+    cluster_name: "de-elk-dev"
+  kibana:
+    port: 5601
+    container_name: elk_kibana
+    service_name: elk-kibana.service
+    service_name_short: elk-kibana
+    service_description: ELK kibana
+    version: 4.2
+    image_name: "kibana:4.2"
+
+es_base: "http://{{ es_host }}:{{ es_port }}"
+es_host: "{{ groups['elk'][0] }}"
+es_port: 9200
+es_scroll_size: 1000
+
+exim:
+  service_name: exim-sender.service
+  service_name_short: exim-sender
+  compose_service: exim_sender
+  service_description: exim-sender service
+  image_name: exim-sender
+  container_name: exim
+  log_file: exim-docker.log
+
+# http proxy settings for facepalm. you may leave these blank.
+facepalm_proxy_host:
+facepalm_proxy_port:
+
+fs_max_paths_in_request: 1000
+
+gpg_home_dir:
+
+# this is a condor group quota setting and should be numeric
+group_config: 0
+
+grouper:
+  service_name: iplant-grouper.service
+  service_name_short: iplant-grouper
+  compose_service: iplant_grouper
+  service_description: Grouper UI and Web Services
+  image_name: grouper
+  image_tag: 2.2.2
+  init: false
+  init_image: sharkbait
+  container_name: iplant-grouper
+  log_driver: "{{ docker.log_driver }}"
+  max_heap_size: 2048M
+  max_perm_size: 256M
+  ssl_certificate: CHANGEME
+  ssl_certificate_key: CHANGEME
+  admin:
+    user: GrouperSystem
+    pass: CHANGEME
+  api:
+    env_name: de
+    container_name: grouper
+  db:
+    url: "jdbc:postgresql://{{db_host}}/subjectdata"
+    user: degrouper
+    pass: CHANGEME
+  http_server:
+    service_name: grouper-nginx.service
+    service_name_short: grouper-nginx
+    service_description: Grouper nginx
+    image_name: "{{ de.http_server.image_name }}"
+    container_name: grouper-nginx
+    log_driver: "{{ docker.log_driver }}"
+    ssl:
+      servers:
+        - server_name: "{{ nginx_ssl.server_name }}"
+          #ssl_certificate: "{{ nginx_ssl.cert }}"
+          ssl_certificate: /etc/iplant/ssl/de-grouper_irss_unc_edu_cert.cer
+          #ssl_certificate_key: "{{ nginx_ssl.cert_key }}"
+          ssl_certificate_key: /etc/iplant/ssl/de-grouper_irss_unc_edu.key
+      insecure_redirects:
+        - server_name: "{{ nginx_ssl.server_name }}"
+          return: "https://$host$request_uri"
+  subject_source:
+    id: irss
+    name: DE
+    url: ldap://"{{ groups['ldap'][0] }}:{{ ldap.port }}"
+    auth_type: simple
+    principal: "{{ ldap.manager_dn }}"
+    credentials: "{{ ldap.admin_password }}"
+  ui:
+    base_url: "https://{{ groups['ui'][0] }}"
+  ws:
+    base_url: "http://{{ groups['grouper'][0] }}:8080/grouper-ws/"
+
+# Periodic indexer for iRODS.
+infosquito:
+  host: "{{ groups['infosquito'][0] }}"
+  service_name: infosquito.service
+  service_name_short: infosquito
+  compose_service: infosquito
+  service_description: infosquito service
+  image_name: infosquito
+  container_name: infosquito
+  properties_file: infosquito.properties
+  log_file: infosquito-docker.log
+  notify_enabled: true
+  notify_count: 10000
+  retry_interval: 900
+  max_heap: "{{ max_heap.low }}"
+
+# Facilitates file extension parsing in the GUI.
+info_typer:
+  host: "{{ groups['info-typer'][0] }}"
+  service_name: info-typer.service
+  service_name_short: info-typer
+  service_description: info-typer service
+  image_name: info-typer
+  compose_service: info_typer
+  container_name: info-typer
+  properties_file: info-typer.properties
+  log_file: info-typer-docker.log
+  max_heap: "{{ max_heap.low }}"
+
+iplant_email:
+  host: "{{ groups['iplant-email'][0] }}"
+  port: 587
+  base: "http://{{ groups['iplant-email'][0] }}:587"
+  service_name: iplant-email.service
+  service_name_short: iplant-email
+  service_description: iPlant Email service
+  image_name: iplant-email
+  container_name: iplant-email
+  compose_service: iplant_email
+  properties_file: iplant-email.properties
+  log_file: iplant-email-docker.log
+  max_heap: "{{ max_heap.low }}"
+
+# A RESTful façade in front of Grouper.
+iplant_groups:
+  host: "{{ groups['iplant-groups'][0] }}"
+  port: 5012
+  base_url: "http://{{ groups['iplant-groups'][0] }}:5012"
+  #base_url: "http://{{ iplant_groups_host }}:{{ iplant_groups_port }}"
+  service_name: iplant-groups.service
+  service_name_short: iplant-groups
+  service_description: iplant-groups service
+  image_name: iplant-groups
+  container_name: iplant-groups
+  compose_service: iplant_groups
+  properties_file: iplant-groups.properties
+  log_file: iplant-groups-docker.log
+  grouper:
+    username: "{{ grouper.admin.user }}"
+    password: "{{ grouper.admin.pass }}"
+    api_version: "v2_2_000"
+    base_url: "{{ grouper.ws.base_url }}"
+  max_heap: "{{ max_heap.low }}"
+
+# Optional role to stand up a basic iRODS iCat.
+irods:
+  admin: rodsadmin
+  admin_users: CHANGEME
+  admin_password: CHANGEME
+  bad_chars: \u0060\u0027\u000A\u0009
+  # used by staff to create permanent id requests
+  data_curators_group: data_curators
+  default_resource: "demoResc"
+  default_resource_path: "/var/lib/irods/iRODS/demoResc"
+  federation_host: 
+  home: CHANGEME
+  host: CHANGEME
+  icat:
+    host: CHANGEME
+    db: CHANGEME
+    dbport: 5432
+    password: CHANGEME
+    user: CHANGEME
+  password: CHANGEME
+  port: 1247
+  portrange:
+    start: 20000
+    end: 20199
+  resc: demoResc
+  service_acct: irods
+  service_grp: irods
+  # irods.user is used to authenticate DE to irods
+  user: CHANGEME
+  vault: CHANGEME
+  zone: CHANGEME
+  
+# Jex service schedules calls condor_submit, and does not actually have a container.
+# The container name is how most syslog entries are identified. See rsyslog-config role.
+jex:
+  host: "{{ groups['condor-submission'][0] }}"
+  port: 5004
+  # ansible didn't like nested vars, so we specified the base port here.
+  base: "http://{{ groups['jex'][0] }}:5004"
+  service_name: jex.service
+  service_name_short: jex
+  compose_service: jex
+  log_file: jex/jex.log
+  batch_group: batch_processing
+  # used for backwards compatibility container and reference genomes. new stand-ups probably won't need this.
+  nfs_base: /export/condor
+  #container_name: jex
+  # iPlant uses this; a new stand-up can probably use the default path.
+  icommands_path: /usr/local/icommands:/usr/local2/icommands:/usr/local/bin:/usr/local2/bin:/usr/bin
+  request_disk: 0
+
+# Jex database settings
+jexdb:
+  driver: "{{db_driver}}"
+  host: "{{db_host}}"
+  db: jex
+  password: CHANGEME
+  port: "{{db_port}}"
+  targz: https://everdene.iplantcollaborative.org/jenkins/job/databases-dev/lastSuccessfulBuild/artifact/databases/jex-db/jex-db.tar.gz
+  user: CHANGEME
+  vendor: "{{db_vendor}}"
+
+# jexevents is an intermediary service between Jex and Condor Log Monitor.
+jex_events_event_url: http://{{ services_host }}:{{ jexevents.port }}/
+jexevents:
+  base: "http://{{ groups['jexevents'][0] }}:5005/"
+  port: 5005
+  event_url: "{{ apps.base }}/callbacks/de-job"
+  service_name: jex-events.service
+  service_name_short: jex-events
+  compose_service: jex_events
+  service_description: jex events service
+  image_name: jex-events
+  container_name: jex-events
+  properties_file: jex-events.properties
+  log_file: jex-events-docker.log
+
+job_status_poll_interval: 15
+
+# DE uses JSON Web Tokens for persistent internal authentication.
+jwt:
+  signing_key:
+    private: "{{ global_config_dir }}/crypto/private-key.pem"
+    public: "{{ global_config_dir }}/crypto/public-key.pem"
+    password: CHANGEME
+    algorithm: "rs256"
+  accepted_keys:
+    dir: "{{ global_config_dir }}/crypto/accepted_keys"
+  validity_window:
+    end: 300
+  wso2:
+    header: x-jwt-assertion-iplant-org
+
+# Kifshare allows external anonymous access to iRODS via URL.
+kifshare:
+  host: "{{ groups['kifshare'][0] }}"
+  port: 1025
+  download_buffer_size: 100
+  # hard-coding url suffix here so Ansible doesn't crab.
+  external_url: "http://{{ de.host }}/dl"
+  external_url_suffix: dl
+  service_name: kifshare.service
+  service_name_short: kifshare
+  compose_service: kifshare
+  service_description: kifshare service
+  image_name: kifshare
+  container_name: kifshare
+  properties_file: kifshare.properties
+  log_file: kifshare-docker.log
+  de_url: \{\{url\}\}/d/\{\{ticket-id\}\}/\{\{filename\}\}
+  mode: prod
+  max_heap: "{{ max_heap.low }}"
+
+# Call the CAS/LDAP playbook if not using your organization's existing services.
+# Test users may be specified using the LDIF template in the LDAP role.
+ldap:
+  host: "{{ groups['ldap'][0] }}"
+  dc: dc=your,dc=org,dc=edu
+  domain_name: your.org.edu
+  country: CHANGEME
+  state: CHANGEME
+  location: CHANGEME
+  organization: CHANGEME
+  admin_password: CHANGEME
+  ansible_done_dir: /etc/ansible/.done
+  authn_format:
+  enable_ssl: false
+  base_dn: CHANGEME
+  create_user_and_groups_done: "{{ldap.done_dir}}/create-users-and-groups"
+  create_indexes_done: "{{ldap.done_dir}}/create-indexes"
+  create_autofs_done: "{{ldap.done_dir}}/create-autofs"
+  create_automount_done: "{{ldap.done_dir}}/create-automount"
+  create_sudo_done: "{{ldap.done_dir}}/create-sudo"
+  create_sudo_master_done: "{{ldap.done_dir}}/create-sudo-master"
+  create_testde_done: "{{ldap.done_dir}}/create-testde"
+  done_dir: "{{ldap.ansible_done_dir}}/ldap"
+  dpkg_reconfigure: false
+  genadminpw: CHANGE
+  global_user: root
+  global_use_sudo: false
+  group_base_dn: ou=Groups,dc=your,dc=org,dc=edu
+  include_create_user_and_groups: true
+  include_create_indexes: true
+  include_create_autofs: false
+  include_create_automount: false
+  include_create_sudo: false
+  include_create_sudo_master: false
+  include_testde: true
+  manager_dn: cn=Manager,dc=your,dc=org,dc=edu
+  port: 389
+  password: CHANGEME
+  password_size: 8
+  search_base_dn: ou=Users,dc=your,dc=org,dc=edu
+  slapd_dpkg_reconfigure_done: "{{ldap.done_dir}}/slapd-dpkg-reconfigure-done"
+  tld: CHANGEME
+  trusted_cert:
+  use_starttls: false
+  user: ldap
+  g_suffix: Groups
+  u_suffix: Users
+  m_suffix: Machines
+
+logging:
+  dir: /var/log/de
+  conf_dir: "{{de_config_dir}}/logging"
+
+logstash_elasticsearch_host: "{{ groups['de-elk'][0] }}"
+logstash:
+  port: 5000
+  ssl:
+    key: CHANGEME
+    cert: CHANGEME
+
+logstash_forwarder:
+  service_description: logstash forwarder service
+  service_name: logstash-forwarder.service
+  service_name_short: logstash-forwarder
+  image_name: willdurand/logstash-forwarder
+  container_name: logstash-fowarder
+
+max_edit_file_size: 2147483647
+
+# The REST API for the Discovery Environment Metadata services.
+metadata_db_driver: "{{ db_driver }}"
+metadata_db_vendor: "{{ db_vendor }}"
+metadata_db_host: "{{ db_host }}"
+metadata_db_port: "{{ db_port }}"
+metadata_db_user: CHANGEME
+metadata_db_password: CHANGEME
+metadata_db_name: metadata
+metadata_db_admin: "{{ db_admin }}"
+metadata_db_admin_password: "{{ db_admin_password }}"
+metadata_db_targz: https://everdene.iplantcollaborative.org/jenkins/job/databases-dev/lastSuccessfulBuild/artifact/databases/metadata/metadata-db.tar.gz
+
+# REST API for the Discovery Environment Metadata services.
+metadata:
+  host: "{{ groups['metadata'][0] }}"
+  port: 5013
+  service_name: metadata.service
+  service_name_short: metadata
+  compose_service: metadata
+  service_description: metadata service
+  image_name: metadata
+  container_name: metadata
+  properties_file: metadata.properties
+  log_file: metadata-docker.log
+  max_heap: "{{ max_heap.high }}"
+
+# Monkey synchronizes the tag documents in the data search index with the metadata database.
+monkey:
+  host: "{{ groups['monkey'][0] }}"
+  service_name: monkey.service
+  service_name_short: monkey
+  compose_service: monkey
+  service_description: monkey service
+  image_name: monkey
+  container_name: monkey
+  properties_file: monkey.properties
+  log_file: monkey-docker.log
+  max_heap: "{{ max_heap.low }}"
+
+# iptables ranges for specific network needs. modify templates as you see fit.
+net:
+  campus: CHANGEME
+  dmz: CHANGEME
+  trust: CHANGEME
+  vpn: CHANGEME
+  wifi: CHANGEME
+  docker: CHANGEME
+
+# Nginx handles SSL and proxy/auth for the UI container.
+nginx_ssl:
+  server_name: "{{ groups['ui'][0] }}"
+  cert: /etc/iplant/ssl/iplant.crt
+  cert_key: /etc/iplant/ssl/iplant.key
+  # don't think we need these.
+  # server_name: "~^[^.]+[.]example[.]org$"
+  # cert: "/etc/ssl/example.crt"
+  # cert_key: "/etc/ssl/example.key"
+
+#nibblonian_perms_filter: "{{ irods_admins }}"
+
+notificationagent_base: "http://{{ notificationagent_host }}:{{ notificationagent.port }}:5008"
+notificationagent_host: "{{ services_host }}"
+
+notificationagent:
+  host: "{{ groups['notificationagent'][0] }}"
+  port: 5008
+  base: "http://{{ groups['notificationagent'][0] }}:5008"
+  service_name: notification-agent.service
+  service_name_short: notificationagent
+  compose_service: notification_agent
+  service_description: notification agent service
+  image_name: notificationagent
+  container_name: notificationagent
+  properties_file: notificationagent.properties
+  log_file: notificationagent-docker.log
+  clean_start: "1:45:00"
+  clean_age: 90
+  clean_enable: "true"
+  max_heap: "{{ max_heap.low }}"
+
+notification_db_driver: "{{ db_driver }}"
+notification_db_vendor: "{{ db_vendor }}"
+notification_db_port: "{{ db_port }}"
+notification_db_host: "{{ db_host }}"
+notification_db_name: notifications
+notification_db_password: CHANGEME
+notification_db_user: CHANGEME
+notification_db_admin: "{{ db_admin }}"
+notification_db_admin_password: "{{ db_admin_password }}"
+notification_db_targz: https://everdene.iplantcollaborative.org/jenkins/job/databases-dev/lastSuccessfulBuild/artifact/databases/notification-db/notification-db.tar.gz
+
+path_list_file_identifier: "# application/vnd.de.path-list+csv; version=1"
+path_list_info_type: ht-analysis-path-list
+
+permanent_id:
+  admin_email_addr: "{{ de_mail_to_addr }}"
+  email_from_addr: "{{ de_mail_from_addr }}"
+  ezid:
+    username: apitest
+    password: CHANGEME
+    shoulders:
+      ark: "ark:/99999/fk4"
+      doi: "doi:10.5072/FK2"
+
+pgp_keyring_path: "{{ gpg_home_dir }}/secring.gpg"
+pgp_key_password: CHANGEME
+
+prod_deployment: false
+
+# proxy_env added for RENCI whose gateway requires it.
+# This setting is silently ignored if left unset.
+proxy_env:
+  http_maven_proxy_host:
+  http_maven_proxy_port:
+  https_proxy: 
+  http_proxy:
+  use_proxy: false
+
+# Is this used? Docker should default here if not specified.
+#registry_host: dockerhub.com
+
+# optional R Server role for use with Dataverse
+rserve:
+  host: "{{ groups['rserve'][0] }}"
+  user: rserve
+  pass: CHANGEME
+  port: 6311
+
+saved_searches_log_file: /home/iplant/logs/saved-searches.log
+saved_searches:
+  host: "{{ groups['saved-searches'][0] }}"
+  port: 5009
+  service_name: saved-searches.service
+  service_name_short: saved-searches
+  compose_service: saved_searches
+  service_description: saved searches services
+  image_name: saved-searches
+  container_name: saved-searches
+  properties_file: saved-searches.properties
+  log_file: saved-searches-docker.log
+  max_heap: "{{ max_heap.low }}"
+
+search_default_limit: 200
+
+services_host: "{{ groups['services'][0] }}"
+
+# new to dev branch, probably don't need yet
+templeton_incremental:
+ host: "{{ groups['templeton-incremental'][0] }}"
+ port:
+ service_name_short: templeton-incremental
+ compose_service: templeton_incremental
+ service_description: templeton incremental service
+ image_name: templeton
+ container_name: templeton-incremental
+ log_file: templeton-docker.log
+
+# Templeton indexes the metadata Postgres database.
+templeton_periodic:
+ host: "{{ groups['templeton-periodic'][0] }}"
+ port:
+ service_name_short: templeton-periodic
+ compose_service: templeton_periodic
+ service_description: templeton periodic service
+ image_name: templeton
+ container_name: templeton-periodic
+ log_file: templeton-docker.log
+
+# Terrain provides the primary REST API used by the Discovery Environment. 
+# Its role is to validate user authentication and to coordinate calls to other web services.
+terrain:
+  host: "{{ groups['terrain'][0] }}"
+  port: 5007
+  base: "http://{{ groups['terrain'][0] }}:5007"
+  service_name: terrain.service
+  service_name_short: terrain
+  compose_service: terrain
+  service_description: terrain service
+  image_name: terrain
+  container_name: terrain
+  properties_file: terrain.properties
+  log_file: terrain-docker.log
+  max_heap: "{{ max_heap.high }}"
+
+tree_parser_base: http://portnoy.iplantcollaborative.org/parseTree
+
+# tree_urls manages saved searches in DE.
+tree_urls:
+  host: "{{ groups['tree-urls'][0] }}"
+  port: 5010
+  service_name: tree-urls.service
+  service_name_short: tree-urls
+  compose_service: tree_urls
+  service_description: Tree urls service
+  image_name: tree-urls
+  container_name: tree-urls
+  properties_file: tree-urls.properties
+  log_file: tree-urls-docker.log
+  cleanup_age: 30
+  cleanup_start: "1:30:00"
+  cleanup_enable: "true"
+  avu: tree-urls
+  max_heap: "{{ max_heap.low }}"
+
+# wants America/New_York, for example.
+timezone: CHANGEME
+
+#user_preferences_host: "{{ services_host }}"
+user_preferences_log_file: /home/iplant/logs/user-preferences.log
+user_preferences:
+  host: "{{ groups['user-preferences'][0] }}"
+  port: 5011
+  service_name: user-preferences.service
+  service_name_short: user-preferences
+  compose_service: user_preferences
+  service_description: user preferences service
+  image_name: user-preferences
+  container_name: user-preferences
+  properties_file: user-preferences.properties
+  log_file: user-preferences-docker.log
+  max_heap: "{{ max_heap.low }}"
+
+user_sessions_host: "{{ services_host }}"
+user_sessions_log_file: /logs/user-sessions.log
+user_sessions:
+  host: "{{ groups['user-sessions'][0] }}"
+  port: 1834
+  service_name: user-sessions.service
+  service_name_short: user-sessions
+  compose_service: user_sessions
+  service_description: user sessions service
+  image_name: user-sessions
+  container_name: user-sessions
+  properties_file: user-sessions.properties
+  log_file: user-sessions-docker.log
+  max_heap: "{{ max_heap.low }}"
+
+# iPlant data container settings
+data_container:
+  image_name: de-data
+  container_name: de-data
+  service_name: iplant-data.service
+  service_name_short: iplant-data
+  compose_service: iplant_data
+  service_description: The Discovery Environment data container
+  ssl:
+    cert: "{{ nginx_ssl.cert }}"
+    key: "{{ nginx_ssl.cert_key }}"
+    gd_bundle_crt: /etc/ssl/gd_bundle.crt
+  keystore:
+    path: /etc/ssl/example.pkcs12
+    password:
+    type: pkcs12
+
+time: "{{ansible_date_time.date}}:{{ansible_date_time.time}}"

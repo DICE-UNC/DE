@@ -1,0 +1,10 @@
+- name: Place docker-cleanup, ui config files
+  template: src={{item.0}} dest={{item.1}} owner={{owner}} group={{group}} mode=0644
+  with_items:
+    - { templates/docker-cleanup/docker-gc-exclude.j2, /etc/docker-gc/docker-gc-exclude }
+    - { templates/docker-cleanup/docker-gc-exclude-containers.j2, /etc/docker-gc/docker-gc-exclude-containers }
+    - { templates/ui/de-application.yaml.j2, /etc/iplant/de/de-application.yaml }
+    - { templates/ui/de.properties.j2, /etc/iplant/de/de.properties }
+    - { templates/ui/nginx.conf.j2, /etc/nginx/nginx.conf }
+  tags:
+      - service_config

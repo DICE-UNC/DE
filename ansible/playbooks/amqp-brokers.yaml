@@ -1,0 +1,83 @@
+---
+- hosts: amqp-brokers
+  become: true
+  roles:
+    - role: util-notify-chat
+      msg: "Updating {{ inventory_hostname }} AMQP broker."
+
+    - role: rabbitmq
+      install: true
+      broker_port: "{{ amqp_broker.port }}"
+      mgmt_port: "{{ amqp_broker.mgmt_port }}"
+      admin_user: "{{ amqp_user }}"
+      admin_password: "{{ amqp_password }}"
+      exchanges:
+        - name: "{{ amqp_irods_exchange }}"
+          type: topic
+
+    - role: util-notify-chat 
+      msg: "Done updating {{ inventory_hostname }} AMQP broker."
+
+- hosts: amqp-ds-bms
+  become: true
+  roles:
+    - role: util-notify-chat
+      msg: "Updating {{ inventory_hostname }} AMQP BMS configuration"
+
+    - role: rabbitmq
+      mgmt_port: "{{ amqp_broker.mgmt_port }}"
+      admin_user: "{{ amqp_user }}"
+      admin_password: "{{ amqp_password }}"
+      enable_ldap_with:
+        servers: '["{{ ldap.host }}"]'
+        user_dn_pattern: '"{{ ldap.dn_lookup.attribute }}=${username},{{ ldap.dn_lookup.base }}"'
+        vhost_access_query: '{equals, "${vhost}", "{{ ds_bms.amqp.extern_vhost }}"}'
+        resource_access_query: |2-
+            {for, [
+              {resource, exchange,
+                {for, [
+                  {permission, configure, {constant, false}},
+                  {permission, write,     {equals, "${name}", "{{ ds_bms.amqp.reg_queue }}"}},
+                  {permission, read,      {constant, false}}]}},
+              {resource, queue,
+                {for, [
+                  {permission, configure, {match, "${name}", "^${username}/"}},
+                  {permission, write,     {constant, false}},
+                  {permission, read,      {match, "${name}", "^${username}/"}}]}}
+            ]}
+      vhosts:
+        - "{{ ds_bms.amqp.extern_vhost }}"
+      policies:
+        - name: user_queues
+          vhost: "{{ ds_bms.amqp.extern_vhost }}"
+          pattern: /
+          tags:
+            expires: 120000
+            max-length: 1000
+      users:
+        - name: "{{ ds_bms.amqp.user }}"
+          password: "{{ ds_bms.amqp.password }}"
+          tags: monitoring
+          vhosts:
+            - name: /
+              configure_priv: ^amq\.gen.*  # Declare rabbitmq-named queue
+              write_priv: ^amq\.gen.*      # Bind rabbitmq-named queue
+              # Bind queue to irods exchange and read from rabbitmq-named queue
+              read_priv: ^(amq\.gen.*|{{ amqp_irods_exchange }})$
+            - name: "{{ ds_bms.amqp.extern_vhost }}"
+              # publish to default exchange and bind req queue
+              write_priv: ^(amq\.default|{{ ds_bms.amqp.reg_queue }})$
+              read_priv: ^{{ ds_bms.amqp.reg_queue }}$  # bind and read from reg queue
+      exchanges:
+        - name: "{{ ds_bms.amqp.reg_queue }}"
+          vhost: "{{ ds_bms.amqp.extern_vhost }}"
+      queues:
+        - name: "{{ ds_bms.amqp.reg_queue }}"
+          vhost: "{{ ds_bms.amqp.extern_vhost }}"
+          exchange: "{{ ds_bms.amqp.reg_queue }}"
+          routing_key: "{{ ds_bms.amqp.reg_queue }}"
+          max_length: 1000
+         
+    - role: util-notify-chat 
+      msg: "Done updating {{ inventory_hostname }} AMQP BMS configuration"
+

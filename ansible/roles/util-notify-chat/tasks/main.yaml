@@ -4,7 +4,7 @@
   uri: 
     url: "{{ chat_room_url }}"
     method: POST
-    body: '{"channel":"#ansible", "username":"{{username}}", "text":"[{{ ansible_user_id }}@{{ ansible_hostname }}] {{ msg }}", "icon_emoji":"{{icon}}"}'
+    body: '{"channel":"#ansible", "username":"{{username}}", "text":"[{{ ansible_ssh_user_id }}@{{ ansible_hostname }}] {{ msg }}", "icon_emoji":"{{icon}}"}'
     body_format: json
   ignore_errors: True
   changed_when: false

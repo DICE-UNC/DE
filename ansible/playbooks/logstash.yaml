@@ -1,0 +1,14 @@
+- hosts: elk
+  become: true
+  vars:
+    logstash_install: "true"
+    logstash_elasticsearch_host: "localhost:9200"
+    logstash_plugins:
+      - plugin: logstash-input-beats
+      - plugin: logstash-output-elasticsearch
+    logstash_version: "2.2"
+    logstash_base_dir: "/opt/logstash"
+    logstash_cfg_dir: "/etc/logstash/conf.d"
+    logstash_clean_cfg_dir: true
+  roles:
+    - role: support-logstash-cfg

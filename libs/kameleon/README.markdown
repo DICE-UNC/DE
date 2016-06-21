@@ -25,7 +25,7 @@ extensions are implemented in kameleon.core.
   (many-to-many bar :foo_bar
                 {:lfk :foo_id
                  :rfk :bar_id}))
-
+sudo
 (defentity bar
   (entity-fields :quux)
   (many-to-many foo :foo_bar

@@ -115,12 +115,12 @@
   [props config-valid configs]
   "apps.workspace.favorites-app-category-index")
 
-(cc/defprop-str workspace-beta-app-category-id
+(cc/defprop-uuid workspace-beta-app-category-id
   "The UUID of the default Beta app category."
   [props config-valid configs]
   "apps.workspace.beta-app-category-id")
 
-(cc/defprop-str workspace-public-id
+(cc/defprop-uuid workspace-public-id
   "The UUID of the default Beta app category."
   [props config-valid configs]
   "apps.workspace.public-id")
@@ -234,10 +234,10 @@
   [props config-valid configs]
   "apps.iplant-groups.base-url")
 
-(cc/defprop-str jex-events-base-url
-  "The base URL for the JEX events service."
-  [props config-valid configs]
-  "apps.jex-events.base-url")
+(cc/defprop-str de-grouper-user
+    "The username that the DE uses to authenticate to Grouper."
+    [props config-valid configs]
+    "apps.iplant-groups.grouper-user")
 
 (cc/defprop-int job-status-poll-interval
   "The job status polling interval in minutes."

@@ -8,6 +8,7 @@ pom.xml
 .lein-repl-history
 *~
 *.swp
+*.log
 .dir-locals.el
 .nrepl-hist.eld
 .nrepl-port
@@ -33,3 +34,7 @@ node_modules/
 .DS_Store
 services/*/*-build
 *.rpm
+.DS_Store
+ services/*/*-build
+ *.rpm
++*.retry

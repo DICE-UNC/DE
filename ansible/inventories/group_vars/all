@@ -1,4 +1,102 @@
+# lab environment variables
+
+
+# --- NFS mounts for Condor --- #
+
+nfs_exports: [/export/condor     152.2.32.238(rw,async,no_subtree_check,no_root_squash)]
+
+# --- LDAP properties --- #
+
+ldap:
+   dc: dc=DFC,dc=unc,dc=edu
+   country: US
+   state: North Carolina
+   location: Chapel Hill
+   organization: DFC
+   tld: dfc
+   domain_name:	dfc
+   host:
+   use_starttls: false
+   enable_ssl: false
+   base_dn: ou=Users,dc=DFC,dc=unc,dc=edu
+   search_base_dn: ou=Users,dc=DFC,dc=unc,dc=edu
+   group_base_dn: ou=Groups,dc=DFC,dc=unc,dc=edu
+   manager_dn:  cn=Manager,dc=DFC,dc=unc,dc=edu
+   admin_password:
+   authn_format: cn=%s,dc=com
+   trusted_cert:
+   port: 389
+   password:
+   password_size: 8
+   g_suffix: Groups
+   u_suffix: Users
+   m_suffix: Machines
+
+
+
+# --- CAS properties --- #
+
+cas:
+  app_list: all iPlant applications
+  base: http://some.server1.at.a.place:8443/cas
+  context_path: cas
+  do_ssl_config: true
+  git_url:  https://github.com/DICE-UNC/cas-overlay.git
+  git_project_name: DFC-CAS-overlay
+  group_attribute: entitlement
+  no_logout_url: http://some.server1.at.a.place
+  port: 8443
+  uid_domain: dfc.org
+# --- /CAS properties --- #
+
+# --- Tomcat --- #
+
+
+ssl_certificate_server_dir: /usr/share/tomcat/cert
+ssl_cert_file: server.crt
+ssl_key_file: server.key
+cas_ssl_cert_file: server.crt
+cas_ssl_key_file: server.key
+
+
+tomcat_http_port: 8080
+tomcat_https_port: 8443
+tomcat_admin_username: admin
+tomcat_admin_password: renci!a7
+tomcat_user: tomcat
+
+
+ssl_certificate_server_dir: /usr/share/tomcat/cert
+ssl_cert_file: server.crt
+ssl_key_file: server.key
+cas_ssl_cert_file: server.crt
+cas_ssl_key_file: server.key
+
+
+ldap_slapd_dpkg_reconfigure_done: false
+ldap_dpkg_reconfigure: false
+ldap_include_create_user_and_groups: true
+ldap_include_create_indexes: true
+ldap_include_create_autofs: false
+ldap_include_create_automount: false
+ldap_include_create_sudo: false
+ldap_include_create_sudo_master: false
+ldap_include_testde: true
+
+
+ldap_ansible_done_dir: /etc/ansible/.done
+ldap_done_dir: "{{ldap_ansible_done_dir}}/ldap"
+ldap_create_user_and_groups_done: "{{ldap_done_dir}}/create-users-and-groups"
+ldap_create_indexes_done: "{{ldap_done_dir}}/create-indexes"
+ldap_create_autofs_done: "{{ldap_done_dir}}/create-autofs"
+ldap_create_automount_done: "{{ldap_done_dir}}/create-automount"
+ldap_create_sudo_done: "{{ldap_done_dir}}/create-sudo"
+ldap_create_sudo_master_done: "{{ldap_done_dir}}/create-sudo-master"
+ldap_create_testde_done: "{{ldap_done_dir}}/create-testde"
+ldap_slapd_dpkg_reconfigure_done: "{{ldap_done_dir}}/slapd-dpkg-reconfigure-done"
+
 ansible_ssh_port: 22
+ansible_ssh_user: ansible
 global_config_dir: /etc/iplant
 de_config_dir: "{{ global_config_dir }}/de"
 local_cfg_dest: cfg_files
@@ -8,19 +106,42 @@ local_cfg_dest: cfg_files
 facepalm_proxy_host: null
 facepalm_proxy_port: 80
 
+net:
+  dmz: 172.0.0.0/8
+  vpn: 172.0.0.0/8
+  trust: 152.54.0.0/16
+  campus: 152.54.0.0/16
+  wifi: 152.54.0.0/16
+
+# A proxy host and port to be used by the database initialization utility,
+# facepalm. This does not affect network requests not made by facepalm.
+
+proxy_env:
+  https_proxy: null
+  http_proxy: null
+  http_maven_proxy_host: null
+  http_maven_proxy_port: 8080
+
+
 docker:
   log_driver: syslog
   tag: latest
   user: discoenv
-  version: 1.9.1
+  version: 1.11.1
   compose_path: /etc/docker-compose.yml
   registry:
     host: "{{ groups['docker-registry'][0] }}"
     port: 5000
     base: "{{ groups['docker-registry'][0] }}:5000"
 
+compose:
+  de_env: dev
+  de_tag: latest
+
 java:
   version: 1.7.0
+
+timezone: America/New_York
 
 # Indicates whether or not this environment is a complete environment or piggybacks off some other
 # environment
@@ -45,8 +166,6 @@ agave:
   client_key:
   client_secret:
 
-amqp_password:
-amqp_user:
 amqp_de_exchange:
 amqp_de_exchange_durable: true
 amqp_de_exchange_auto_delete: false
@@ -54,11 +173,12 @@ amqp_irods_exchange: irods
 amqp_irods_exchange_type: topic
 amqp_irods_exchange_durable: true
 amqp_irods_exchange_auto_delete: false
-amqp_irods_connection_health_check_interval: 5000
 
 amqp_broker:
   host: "{{ groups['amqp-brokers'][0] }}"
-  port:
+  port: 5672
+  user: guest
+  password: guest
   condor_events:
     exchange: condor_events
     exchange_type: fanout
@@ -127,20 +247,13 @@ de:
 #          ssl_certificate: "/etc/ssl/example.com.crt"
 #          ssl_certificate_key: "/etc/ssl/example.com.key"
 
-app_version_name: Phthalo
-app_version: 2.4.0
+de_version_name: Phthalo
+de_version: 2.6.0
 
 de_feedback_to_addr: ""
 de_mail_from_addr: "{{ de_feedback_to_addr }}"
 de_mail_to_addr: "{{ de_feedback_to_addr }}"
 
-
-cas_base:
-cas_group_attribute: entitlement
-cas_uid_domain:
-
-cas_no_logout_url: http://user.iplantcollaborative.org
-cas_app_list: all CyVerse applications
 
 chat_room_url:
 
@@ -258,9 +371,11 @@ environment_name:
 elasticsearch:
   host: "{{ groups['elasticsearch'][0] }}"
   port:
+  version: 2.3.0
   base: "http://{{ groups['elasticsearch'][0] }}"
   scroll_size: 1000
   cluster_name: elasticsearch
+  data_index: data
   heap_size:
   network_http_port:
   network_transport_tcp_port:
@@ -281,11 +396,8 @@ gpg_home_dir:
 group_config:
 
 grouper:
-  service_name: iplant-grouper.service
-  service_name_short: iplant-grouper
-  compose_service: iplant_grouper
-  service_description: Grouper UI and Web Services
-  image_name: iplant-grouper
+  compose_service: grouper
+  image_repo: "{{ docker.user }}/grouper:2.2.2"
   init_image: sharkbait
   log_driver: "{{ docker.log_driver }}"
   max_heap_size: 2048M
@@ -301,11 +413,8 @@ grouper:
     user:
     pass:
   http_server:
-    service_name: grouper-nginx.service
-    service_name_short: grouper-nginx
     compose_service: grouper_nginx
-    service_description: Grouper nginx
-    image_name: "{{ de.http_server.image_name }}"
+    image_repo: "{{ de.http_server.image_name }}"
     container_name: grouper-nginx
     log_driver: "{{ docker.log_driver }}"
     ssl:
@@ -329,7 +438,7 @@ grouper:
     base_url:
 
 icat:
-  host: "{{ groups['icat'][0] }}"
+  host: "{{ groups['icat'][0] if groups['icat']|count else ''}}"
   port: 5432
   user:
   password:
@@ -385,14 +494,21 @@ irods_admin_users: "{{ irods.user }},{{ irods.admins }}"
 irods:
   host: "{{ groups['irods'][0] }}"
   port: 1247
-  user:
+  user: rods
   password:
-  zone: iplant
-  home: /iplant/home
+  zone:
+  home: /xxxx/home
   default_resource: ""
+  resc: ""
   admins: rodsadmin
   data_curators_group: data-curators
   bad_chars: \u0060\u0027\u000A\u0009
+  amqp_broker:
+    host: "{{ groups['irods-amqp-brokers'][0] if groups['irods-amqp-brokers']|count else ''}}"
+    port: 5672
+    user: guest
+    password: guest
+
 
 # Jex does not actually have a container. The container name is how most syslog entries
 # are identified. See rsyslog-config role.
@@ -485,6 +601,7 @@ apps:
   user_subs: "[\"Apps under development\",\"Favorite Apps\"]"
   trash_category: Trash
   max_heap: "{{ max_heap.high }}"
+  grouper_user:
 
 metadata_db_driver: "{{ db_driver }}"
 metadata_db_vendor: "{{ db_vendor }}"
@@ -571,6 +688,22 @@ permanent_id:
       ark: "ark:/99999/fk4"
       doi: "doi:10.5072/FK2"
 
+permissions:
+  host: "{{ groups['permissions'][0] if groups['permissions']|count else '' }}"
+  port:
+  compose_service: permissions
+  service_name_short: permissions
+
+permissions_db_driver: "{{ db_driver }}"
+permissions_db_vendor: "{{ db_vendor }}"
+permissions_db_port: "{{ db_port }}"
+permissions_db_host: "{{ db_host }}"
+permissions_db_name: permissions
+permissions_db_password: "{{ db_password }}"
+permissions_db_user: "{{ db_user }}"
+permissions_db_admin: "{{ db_admin }}"
+permissions_db_admin_password: "{{ db_admin_password }}"
+
 pgp_keyring_path: "{{ gpg_home_dir }}/secring.gpg"
 pgp_key_password:
 
@@ -591,6 +724,26 @@ saved_searches:
   max_heap: "{{ max_heap.low }}"
 
 search_default_limit: 200
+
+templeton_periodic:
+  host: "{{ groups['templeton-periodic'][0] }}"
+  port:
+  service_name_short: templeton-periodic
+  compose_service: templeton_periodic
+  service_description: templeton periodic service
+  image_name: templeton
+  container_name: templeton-periodic
+  log_file: templeton-docker.log
+
+templeton_incremental:
+  host: "{{ groups['templeton-incremental'][0] }}"
+  port:
+  service_name_short: templeton-incremental
+  compose_service: templeton_incremental
+  service_description: templeton incremental service
+  image_name: templeton
+  container_name: templeton-incremental
+  log_file: templeton-docker.log
 
 tree_parser_base: http://portnoy.iplantcollaborative.org/parseTree
 

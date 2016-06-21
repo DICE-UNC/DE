@@ -1,0 +1,7 @@
+---
+- name: Config directory exists
+  file:
+    path: "{{ logstash_cfg_dir }}"
+    state: directory
+        
+

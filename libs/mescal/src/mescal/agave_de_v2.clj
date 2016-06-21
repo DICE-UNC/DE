@@ -14,8 +14,10 @@
   (into {} (map (juxt :id :status) (.listSystems agave))))
 
 (defn list-apps
-  [agave jobs-enabled?]
-  (app-listings/list-apps agave (get-system-statuses agave) jobs-enabled?))
+  ([agave jobs-enabled?]
+     (app-listings/list-apps agave (get-system-statuses agave) jobs-enabled?))
+  ([agave jobs-enabled? app-ids]
+     (app-listings/list-apps agave (get-system-statuses agave) jobs-enabled? app-ids)))
 
 (defn- app-matches?
   [search-term app]
@@ -48,6 +50,10 @@
 (defn get-app-tool-listing
   [agave app-id]
   {:tools [(apps/format-tool-for-app (.getApp agave app-id))]})
+
+(defn get-app-input-ids
+  [agave app-id]
+  (mapv :id (:inputs (.getApp agave app-id))))
 
 (defn prepare-job-submission
   [agave submission]

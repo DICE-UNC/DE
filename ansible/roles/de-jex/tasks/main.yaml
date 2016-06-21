@@ -1,4 +1,10 @@
 ---
+
+- name: ensure java-1.8.0-openjdk-headless
+  yum: name=java-1.8.0-openjdk-headless state=latest
+  tags:
+    - jex
+
 - name: create /var/log/jex
   file: path=/var/log/jex owner=condor group=condor mode=0777 state=directory
   tags:
@@ -55,6 +61,12 @@
 
 - name: ensure that /etc/iplant/de exists
   file: path={{ de_config_dir }} state=directory mode=0755
+  tags:
+    - jex
+    - config
+
+- name: place jex.properties
+  template: src=jex.properties.j2 dest=/etc/iplant/de/jex.properties owner=root group=root mode=0644
   tags:
     - jex
     - config

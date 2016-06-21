@@ -1,0 +1,7 @@
+---
+- name: Distribute docker compose information
+  hosts: docker-ready
+  sudo: yes
+  roles:
+      - distribute-compose-by-copy
+

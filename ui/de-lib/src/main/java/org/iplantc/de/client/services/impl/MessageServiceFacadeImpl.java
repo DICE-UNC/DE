@@ -8,6 +8,8 @@ import org.iplantc.de.client.models.UserInfo;
 import org.iplantc.de.client.models.notifications.Counts;
 import org.iplantc.de.client.models.notifications.Notification;
 import org.iplantc.de.client.models.notifications.NotificationAutoBeanFactory;
+import org.iplantc.de.client.models.notifications.NotificationCategory;
+import org.iplantc.de.client.models.notifications.NotificationList;
 import org.iplantc.de.client.services.MessageServiceFacade;
 import org.iplantc.de.client.services.PermIdRequestUserServiceFacade;
 import org.iplantc.de.client.services.callbacks.NotificationCallback;
@@ -89,7 +91,7 @@ public class MessageServiceFacadeImpl implements MessageServiceFacade {
     }
 
     @Override
-    public void getRecentMessages(AsyncCallback<List<Notification>> callback) {
+    public void getRecentMessages(AsyncCallback<NotificationList> callback) {
         String address = deProperties.getMuleServiceBaseUrl()
                              + "notifications/last-ten-messages"; //$NON-NLS-1$
         ServiceCallWrapper wrapper = new ServiceCallWrapper(GET, address);
@@ -123,15 +125,6 @@ public class MessageServiceFacadeImpl implements MessageServiceFacade {
     }
 
     @Override
-    public <C extends NotificationCallback> void getRecentMessages(C callback) {
-        String address = deProperties.getMuleServiceBaseUrl()
-                             + "notifications/last-ten-messages"; //$NON-NLS-1$
-        ServiceCallWrapper wrapper = new ServiceCallWrapper(GET, address);
-        deServiceFacade.getServiceData(wrapper, callback);
-
-    }
-
-    @Override
     public void getMessageCounts(final AsyncCallback<Counts> callback) {
         final String addr = deProperties.getMuleServiceBaseUrl()
                                 + "notifications/count-messages?seen=false"; //$NON-NLS-1$
@@ -141,8 +134,12 @@ public class MessageServiceFacadeImpl implements MessageServiceFacade {
     }
 
     @Override
-    public void deleteAll(AsyncCallback<String> callback) {
+    public void deleteAll(NotificationCategory category, AsyncCallback<String> callback) {
         String address = deProperties.getMuleServiceBaseUrl() + "notifications/delete-all"; //$NON-NLS-1$
+
+        if (NotificationCategory.ALL != category) {
+            address += "?filter=" + URL.encodeQueryString(category.toString().toLowerCase());
+        }
 
         ServiceCallWrapper wrapper = new ServiceCallWrapper(DELETE, address);
 

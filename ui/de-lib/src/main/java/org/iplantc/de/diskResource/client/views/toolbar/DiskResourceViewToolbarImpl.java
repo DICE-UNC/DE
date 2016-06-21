@@ -96,10 +96,12 @@ public class DiskResourceViewToolbarImpl extends Composite implements ToolbarVie
     @UiField
     TextButton refreshButton;
     @UiField
-    MenuItem renameMi, moveMi, deleteMi, editFileMi, editCommentsMi, editInfoTypeMi, metadataMi,
-            savemetadatami,
- copymetadataMi, editmetadataMi, bulkmetadataMi,
- selectmetadataMi, doiMi;
+    MenuItem renameMi, moveMi, deleteMi, editFileMi, editCommentsMi, editInfoTypeMi, savemetadatami,
+            copymetadataMi, editmetadataMi, bulkmetadataMi, selectmetadataMi, doiMi;
+
+    @UiField
+    TextButton metadataMenu;
+
     @UiField
     MenuItem shareFolderLocationMi;
     @UiField
@@ -250,7 +252,8 @@ public class DiskResourceViewToolbarImpl extends Composite implements ToolbarVie
 
         boolean duplicateMiEnabled, addToSideBarMiEnabled, moveToTrashMiEnabled;
 
-        boolean renameMiEnabled, moveMiEnabled, deleteMiEnabled, editFileMiEnabled, editCommentsMiEnabled, editInfoTypeMiEnabled, metadataMiEnabled;
+        boolean renameMiEnabled, moveMiEnabled, deleteMiEnabled, editFileMiEnabled, editCommentsMiEnabled
+                ,editInfoTypeMiEnabled, metadataMiEnabled;
 
         boolean simpleDownloadMiEnabled, bulkDownloadMiEnabled;
         boolean sendToCogeMiEnabled, sendToEnsemblMiEnabled, sendToTreeViewerMiEnabled;
@@ -262,10 +265,13 @@ public class DiskResourceViewToolbarImpl extends Composite implements ToolbarVie
         selectedDiskResources = event.getSelection();
         final boolean isSelectionEmpty = selectedDiskResources.isEmpty();
         final boolean isSingleSelection = selectedDiskResources.size() == 1;
-        final boolean isOwner = isOwner(selectedDiskResources);
+        final boolean isOwner = isOwnerList(selectedDiskResources);
+        final boolean isWriteable = isWritable();
+        DiskResource firstItem = getFirstDiskResource();
+        final boolean isReadable = !isSelectionEmpty && isReadable(firstItem);
         final boolean isSelectionInTrash = isSelectionInTrash(selectedDiskResources);
         final boolean isFolderSelect = !isSelectionEmpty
-                && selectedDiskResources.get(0) instanceof Folder;
+                                       && firstItem instanceof Folder;
 
         duplicateMiEnabled = !isSelectionEmpty && isOwner && !isSelectionInTrash;
         moveToTrashMiEnabled = !isSelectionEmpty && isOwner && !isSelectionInTrash;
@@ -276,11 +282,10 @@ public class DiskResourceViewToolbarImpl extends Composite implements ToolbarVie
         editFileMiEnabled = !isSelectionEmpty && isSingleSelection
                 && containsFile(selectedDiskResources) && isOwner && !isSelectionInTrash;
         editCommentsMiEnabled = !isSelectionEmpty && isSingleSelection && !isSelectionInTrash
-                && isReadable(selectedDiskResources.get(0));
+                && isReadable;
         editInfoTypeMiEnabled = !isSelectionEmpty && isSingleSelection && !isSelectionInTrash
                 && containsFile(selectedDiskResources) && isOwner;
-        metadataMiEnabled = !isSelectionEmpty && isSingleSelection && !isSelectionInTrash
-                && isReadable(selectedDiskResources.get(0));
+        metadataMiEnabled = !isSelectionEmpty && isSingleSelection && !isSelectionInTrash;
 
         simpleDownloadMiEnabled = !isSelectionEmpty && containsFile(selectedDiskResources);
         bulkDownloadMiEnabled = !isSelectionEmpty;
@@ -317,12 +322,15 @@ public class DiskResourceViewToolbarImpl extends Composite implements ToolbarVie
         editFileMi.setEnabled(editFileMiEnabled);
         editCommentsMi.setEnabled(editCommentsMiEnabled);
         editInfoTypeMi.setEnabled(editInfoTypeMiEnabled);
-        metadataMi.setEnabled(metadataMiEnabled);
-        copymetadataMi.setEnabled(metadataMiEnabled);
-        savemetadatami.setEnabled(metadataMiEnabled);
-        bulkmetadataMi.setEnabled(metadataMiEnabled && isFolderSelect);
-        doiMi.setEnabled(metadataMiEnabled && isFolderSelect);
-        editmetadataMi.setEnabled(metadataMiEnabled);
+
+        copymetadataMi.setEnabled(metadataMiEnabled && isReadable);
+        savemetadatami.setEnabled(metadataMiEnabled && isReadable);
+        bulkmetadataMi.setEnabled(
+                metadataMiEnabled && isFolderSelect && (isOwner || isWriteable));
+        selectmetadataMi.setEnabled(
+                metadataMiEnabled && isFolderSelect && (isOwner || isWriteable));
+        doiMi.setEnabled(metadataMiEnabled && isFolderSelect && isOwner);
+        editmetadataMi.setEnabled(metadataMiEnabled && isReadable);
 
         simpleDownloadMi.setEnabled(simpleDownloadMiEnabled);
         bulkDownloadMi.setEnabled(bulkDownloadMiEnabled);
@@ -335,6 +343,14 @@ public class DiskResourceViewToolbarImpl extends Composite implements ToolbarVie
         sendToTreeViewerMi.setEnabled(sendToTreeViewerMiEnabled);
 
         restoreMi.setEnabled(restoreMiEnabled);
+    }
+
+    private DiskResource getFirstDiskResource() {
+        if(selectedDiskResources!=null &&  selectedDiskResources.size() >0) {
+            return selectedDiskResources.get(0);
+        } else {
+            return null;
+        }
     }
 
     @Override
@@ -619,7 +635,7 @@ public class DiskResourceViewToolbarImpl extends Composite implements ToolbarVie
                     case CLOSE:
                         break;
                     case YES:
-                        presenter.onDoiRequest(selectedDiskResources.get(0).getId());
+                        presenter.onDoiRequest(getFirstDiskResource().getId());
                         break;
                     case NO:
                         break;
@@ -712,11 +728,15 @@ public class DiskResourceViewToolbarImpl extends Composite implements ToolbarVie
         moveMi.ensureDebugId(baseID + Ids.EDIT_MENU + Ids.MENU_ITEM_MOVE);
         editFileMi.ensureDebugId(baseID + Ids.EDIT_MENU + Ids.MENU_ITEM_EDIT_FILE);
         editInfoTypeMi.ensureDebugId(baseID + Ids.EDIT_MENU + Ids.MENU_ITEM_EDIT_INFO_TYPE);
-        metadataMi.ensureDebugId(baseID + Ids.EDIT_MENU + Ids.MENU_ITEM_METADATA);
-        copymetadataMi.ensureDebugId(baseID + Ids.EDIT_MENU + Ids.MENU_ITEM_METADATA
-                + Ids.MENU_ITEM_METADATA_COPY);
-        savemetadatami.ensureDebugId(baseID + Ids.EDIT_MENU + Ids.MENU_ITEM_METADATA
-                + Ids.MENU_ITEM_METADATA_SAVE);
+
+        // Metadata menu
+        metadataMenu.ensureDebugId(baseID + Ids.METADATA_MENU);
+        copymetadataMi.ensureDebugId(baseID + Ids.METADATA_MENU + Ids.MENU_ITEM_METADATA_COPY);
+        savemetadatami.ensureDebugId(baseID + Ids.METADATA_MENU + Ids.MENU_ITEM_METADATA_SAVE);
+        doiMi.ensureDebugId(baseID + Ids.METADATA_MENU + Ids.MENU_ITEM_REQUEST_DOI);
+        bulkmetadataMi.ensureDebugId(baseID + Ids.METADATA_MENU + Ids.MENU_ITEM_BULK_METADATA);
+        selectmetadataMi.ensureDebugId(
+                baseID + Ids.METADATA_MENU + Ids.MENU_ITEM_BULK_METADATA + Ids.MENU_ITEM_SELECTFILE);
 
         // Download menu
         simpleDownloadMi.ensureDebugId(baseID + Ids.DOWNLOAD_MENU + Ids.MENU_ITEM_SIMPLE_DOWNLOAD);
@@ -756,12 +776,20 @@ public class DiskResourceViewToolbarImpl extends Composite implements ToolbarVie
         return true;
     }
 
-    boolean isOwner(final List<DiskResource> selection) {
+    boolean isOwnerList(final List<DiskResource> selection) {
         return diskResourceUtil.isOwner(selection);
+    }
+
+    boolean isOwner(final DiskResource item) {
+       return diskResourceUtil.isOwner(item);
     }
 
     boolean isReadable(final DiskResource item) {
         return diskResourceUtil.isReadable(item);
+    }
+
+    boolean isWritable() {
+        return diskResourceUtil.isWritable(getFirstDiskResource());
     }
 
     boolean isSelectionInTrash(final List<DiskResource> selection) {
